@@ -1,13 +1,41 @@
-const STORAGE_KEY = "content-planner-tasks-v2";
+const STORAGE_KEY = "content-planner-tasks-v3";
+const CARRYOVER_KEY = "content-planner-carryover-last-date";
 
 const categories = [
   "Video Shoot",
-  "Video Editing",
-  "Social Media Post",
-  "Post Design",
-  "Print Design",
-  "Other Tasks",
+  "video editing",
+  "Post Designing",
+  "Thumbnail Designing",
+  "Leads Data entry",
+  "COD order Processing",
+  "Website Development",
+  "In between tasks",
+  "social media publishing",
 ];
+
+const categoryColors = {
+  "Video Shoot": "#fef3c7",
+  "video editing": "#ddd6fe",
+  "Post Designing": "#dbeafe",
+  "Thumbnail Designing": "#fecdd3",
+  "Leads Data entry": "#cffafe",
+  "COD order Processing": "#fde68a",
+  "Website Development": "#dcfce7",
+  "In between tasks": "#e5e7eb",
+  "social media publishing": "#fee2e2",
+};
+
+const categoryChecklistTemplates = {
+  "Website Development": ["Add/Edit Product", "Product SEO", "Fix Prices"],
+  "social media publishing": [
+    "📝 CONTENT WRITING",
+    "▶️ Youtube",
+    "📸 Insta",
+    "📘 FB",
+    "🎵 Tiktok",
+    "💼 Linkedin",
+  ],
+};
 
 const priorities = [
   { value: "high", label: "🔴 High" },
@@ -21,7 +49,6 @@ const state = {
   modalDateKey: null,
   editingTaskId: null,
   reminders: new Set(),
-  detailTaskRef: null,
   pomodoroTimer: null,
   pomodoroSecondsLeft: 25 * 60,
 };
@@ -42,6 +69,7 @@ const taskPomodoro = document.getElementById("taskPomodoro");
 const taskCategory = document.getElementById("taskCategory");
 const taskPriority = document.getElementById("taskPriority");
 const taskSubtasks = document.getElementById("taskSubtasks");
+const categoryOptions = document.getElementById("categoryOptions");
 
 const quickAddForm = document.getElementById("quickAddForm");
 const quickTaskText = document.getElementById("quickTaskText");
@@ -92,10 +120,28 @@ function safeUUID() {
   return crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getCategoryColor(category) {
+  return categoryColors[category] || "#e2e8f0";
+}
+
+function getPriorityColor(priority) {
+  if (priority === "high") return "#ef4444";
+  if (priority === "medium") return "#f97316";
+  return "#16a34a";
+}
+
+function shadeColor(hex, opacity = 0.18) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.substring(0, 2), 16);
+  const g = parseInt(value.substring(2, 4), 16);
+  const b = parseInt(value.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
 function setupSelects() {
-  const categoryOptions = categories.map((c) => `<option value="${c}">${c}</option>`).join("");
+  const categoryOptionsHtml = categories.map((c) => `<option value="${c}">${c}</option>`).join("");
   const priorityOptions = priorities.map((p) => `<option value="${p.value}">${p.label}</option>`).join("");
-  [taskCategory, quickTaskCategory].forEach((select) => (select.innerHTML = categoryOptions));
+  [taskCategory, quickTaskCategory].forEach((select) => (select.innerHTML = categoryOptionsHtml));
   [taskPriority, quickTaskPriority].forEach((select) => (select.innerHTML = priorityOptions));
 }
 
@@ -111,6 +157,43 @@ function emojiPriority(priority) {
   if (priority === "high") return "🔴 High";
   if (priority === "medium") return "🟠 Medium";
   return "🟢 Low";
+}
+
+function carryForwardIncompleteTasks() {
+  const todayKey = formatDateKey(new Date());
+  const alreadyCarried = localStorage.getItem(CARRYOVER_KEY);
+  if (alreadyCarried === todayKey) return;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = formatDateKey(yesterday);
+
+  const prevTasks = state.tasksByDate[yesterdayKey] || [];
+  if (!prevTasks.length) {
+    localStorage.setItem(CARRYOVER_KEY, todayKey);
+    return;
+  }
+
+  const todayTasks = state.tasksByDate[todayKey] || [];
+  const incomplete = prevTasks.filter((task) => !task.completed);
+
+  incomplete.forEach((task) => {
+    const exists = todayTasks.some(
+      (t) => t.carriedFromDate === yesterdayKey && t.carriedFromTaskId === task.id
+    );
+    if (!exists) {
+      todayTasks.push({
+        ...task,
+        id: safeUUID(),
+        carriedFromDate: yesterdayKey,
+        carriedFromTaskId: task.id,
+      });
+    }
+  });
+
+  state.tasksByDate[todayKey] = todayTasks;
+  localStorage.setItem(CARRYOVER_KEY, todayKey);
+  saveTasks();
 }
 
 function renderCalendar() {
@@ -169,14 +252,20 @@ function renderCalendar() {
 
 function createTaskElement(task, dateKey) {
   const li = document.createElement("li");
-  li.className = `task-item priority-${task.priority}`;
+  li.className = "task-item";
   li.draggable = true;
+
+  const categoryColor = getCategoryColor(task.category);
+  const priorityColor = getPriorityColor(task.priority);
+  li.style.background = `linear-gradient(110deg, ${shadeColor(categoryColor, 0.26)} 0%, #ffffff 75%)`;
+  li.style.borderLeftColor = priorityColor;
 
   li.addEventListener("dragstart", (event) => {
     event.dataTransfer.setData("text/plain", JSON.stringify({ fromDateKey: dateKey, taskId: task.id }));
   });
 
   const subtaskSummary = task.subtasks?.length ? `<span class="pill">${task.subtasks.filter((s) => s.done).length}/${task.subtasks.length} subtasks</span>` : "";
+  const carryInfo = task.carriedFromDate ? `<span class="pill">↪ from ${task.carriedFromDate}</span>` : "";
 
   li.innerHTML = `
     <div class="task-main">
@@ -184,10 +273,11 @@ function createTaskElement(task, dateKey) {
       <span class="task-title ${task.completed ? "done" : ""}">${task.text}</span>
     </div>
     <div class="task-meta">
-      <span class="pill">${task.category}</span>
+      <span class="pill category-pill" style="background:${shadeColor(categoryColor, 0.45)};border-color:${shadeColor(categoryColor,0.75)}">${task.category}</span>
       <span class="pill priority-pill ${task.priority}">${emojiPriority(task.priority)}</span>
       <span class="pill">${task.status || "Not Started"}</span>
       ${subtaskSummary}
+      ${carryInfo}
     </div>
     <div class="task-actions">
       <button type="button" data-view="${task.id}">View</button>
@@ -204,32 +294,56 @@ function createTaskElement(task, dateKey) {
   return li;
 }
 
+function renderCategoryOptions(selectedCategory, existingChecks = []) {
+  const templateItems = categoryChecklistTemplates[selectedCategory] || [];
+  if (!templateItems.length) {
+    categoryOptions.innerHTML = "";
+    categoryOptions.classList.add("hidden");
+    return;
+  }
+
+  categoryOptions.classList.remove("hidden");
+  categoryOptions.innerHTML = `
+    <h4>${selectedCategory} checklist</h4>
+    <div class="checkbox-grid">
+      ${templateItems
+        .map(
+          (item) =>
+            `<label><input type="checkbox" value="${item}" data-cat-check ${existingChecks.includes(item) ? "checked" : ""} /> ${item}</label>`
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function openTaskModal(dateKey, task = null) {
   state.modalDateKey = dateKey;
   state.editingTaskId = task?.id || null;
   taskModalTitle.textContent = task ? "Edit Task" : "Add Task";
+
+  taskCategory.value = task?.category || categories[0];
+  renderCategoryOptions(taskCategory.value, task?.categoryChecklist || []);
+
   taskText.value = task?.text || "";
   taskDescription.value = task?.description || "";
   taskStatus.value = task?.status || "Not Started";
   taskReminder.value = task?.reminder || "";
   taskPomodoro.value = task?.pomodoroMinutes || 25;
-  taskCategory.value = task?.category || categories[0];
   taskPriority.value = task?.priority || "medium";
   taskSubtasks.value = task?.subtasks?.map((sub) => sub.title).join("\n") || "";
   taskModal.showModal();
 }
 
 function collectTaskPayload() {
-  const subtaskTitles = taskSubtasks.value
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
+  const subtaskTitles = taskSubtasks.value.split("\n").map((item) => item.trim()).filter(Boolean);
   const existing = (state.tasksByDate[state.modalDateKey] || []).find((task) => task.id === state.editingTaskId);
+
   const subtasks = subtaskTitles.map((title) => {
     const old = existing?.subtasks?.find((sub) => sub.title === title);
     return old ? old : { id: safeUUID(), title, done: false };
   });
+
+  const categoryChecklist = [...categoryOptions.querySelectorAll("[data-cat-check]:checked")].map((checkbox) => checkbox.value);
 
   return {
     text: taskText.value.trim(),
@@ -240,23 +354,16 @@ function collectTaskPayload() {
     category: taskCategory.value,
     priority: taskPriority.value,
     subtasks,
+    categoryChecklist,
   };
 }
 
 function addOrUpdateTask(dateKey, payload, taskId = null) {
   const tasks = state.tasksByDate[dateKey] || [];
-
   if (taskId) {
     state.tasksByDate[dateKey] = tasks.map((task) => (task.id === taskId ? { ...task, ...payload } : task));
   } else {
-    state.tasksByDate[dateKey] = [
-      ...tasks,
-      {
-        id: safeUUID(),
-        completed: false,
-        ...payload,
-      },
-    ];
+    state.tasksByDate[dateKey] = [...tasks, { id: safeUUID(), completed: false, ...payload }];
   }
 
   saveTasks();
@@ -264,16 +371,17 @@ function addOrUpdateTask(dateKey, payload, taskId = null) {
 }
 
 function deleteTask(dateKey, taskId) {
-  const tasks = state.tasksByDate[dateKey] || [];
-  state.tasksByDate[dateKey] = tasks.filter((task) => task.id !== taskId);
+  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).filter((task) => task.id !== taskId);
   saveTasks();
   renderCalendar();
 }
 
 function toggleTask(dateKey, taskId) {
-  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) =>
-    task.id === taskId ? { ...task, completed: !task.completed } : task
-  );
+  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) => {
+    if (task.id !== taskId) return task;
+    const completed = !task.completed;
+    return { ...task, completed, status: completed ? "Done" : task.status === "Done" ? "In Progress" : task.status };
+  });
   saveTasks();
   renderCalendar();
 }
@@ -302,11 +410,7 @@ function renderTodayFocusPanel() {
   const todayKey = formatDateKey(new Date());
   const todaysTasks = sortedTasks(state.tasksByDate[todayKey] || []);
 
-  todayDateLabel.textContent = parseDateKey(todayKey).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
+  todayDateLabel.textContent = parseDateKey(todayKey).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 
   const groups = {
     high: todaysTasks.filter((task) => task.priority === "high" && !task.completed),
@@ -324,23 +428,24 @@ function renderTodayFocusPanel() {
 }
 
 function columnTemplate(title, tasks) {
-  const list = tasks.length ? tasks.map((task) => `<li class="pill">${task.text}</li>`).join("") : `<li class="pill">No tasks</li>`;
+  const list = tasks.length
+    ? tasks
+        .map((task) => {
+          const c = getCategoryColor(task.category);
+          const p = getPriorityColor(task.priority);
+          return `<li class="kanban-task" style="background:${shadeColor(c, 0.38)}; border-color:${shadeColor(c, 0.75)}"><strong>${task.text}</strong><span>${task.category}</span><span class="k-pri" style="color:${p}">${emojiPriority(task.priority)}</span></li>`;
+        })
+        .join("")
+    : `<li class="pill">No tasks</li>`;
   return `<section class="kanban-column"><h3>${title}</h3><ul>${list}</ul></section>`;
 }
 
 function openDayTasksModal(dateKey) {
   const tasks = sortedTasks(state.tasksByDate[dateKey] || []);
   dayTasksTitle.textContent = `Tasks for ${parseDateKey(dateKey).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
-
   dayTasksList.innerHTML = tasks.length
-    ? tasks
-        .map(
-          (task) =>
-            `<li><strong>${task.text}</strong><br /><small>${task.status || "Not Started"} • ${emojiPriority(task.priority)} • ${task.category}</small></li>`
-        )
-        .join("")
+    ? tasks.map((task) => `<li><strong>${task.text}</strong><br /><small>${task.status || "Not Started"} • ${emojiPriority(task.priority)} • ${task.category}</small></li>`).join("")
     : "<li>No tasks for this day.</li>";
-
   dayTasksModal.showModal();
 }
 
@@ -348,9 +453,12 @@ function openTaskDetails(dateKey, taskId) {
   const task = (state.tasksByDate[dateKey] || []).find((item) => item.id === taskId);
   if (!task) return;
 
-  state.detailTaskRef = { dateKey, taskId };
   state.pomodoroSecondsLeft = (task.pomodoroMinutes || 25) * 60;
   renderPomodoroDisplay();
+
+  const checklistHtml = task.categoryChecklist?.length
+    ? `<p><strong>Category checklist:</strong> ${task.categoryChecklist.join(", ")}</p>`
+    : "";
 
   taskDetailsTitle.textContent = task.text;
   taskDetailsBody.innerHTML = `
@@ -359,16 +467,8 @@ function openTaskDetails(dateKey, taskId) {
     <p><strong>Category:</strong> ${task.category}</p>
     <p><strong>Priority:</strong> ${emojiPriority(task.priority)}</p>
     <p><strong>Reminder:</strong> ${task.reminder ? new Date(task.reminder).toLocaleString() : "No reminder"}</p>
-    <div><strong>Subtasks:</strong><ul>${
-      task.subtasks?.length
-        ? task.subtasks
-            .map(
-              (subtask) =>
-                `<li><label><input type="checkbox" data-subtask-id="${subtask.id}" ${subtask.done ? "checked" : ""} /> ${subtask.title}</label></li>`
-            )
-            .join("")
-        : "<li>No subtasks</li>"
-    }</ul></div>
+    ${checklistHtml}
+    <div><strong>Subtasks:</strong><ul>${task.subtasks?.length ? task.subtasks.map((subtask) => `<li><label><input type="checkbox" data-subtask-id="${subtask.id}" ${subtask.done ? "checked" : ""} /> ${subtask.title}</label></li>`).join("") : "<li>No subtasks</li>"}</ul></div>
   `;
 
   taskDetailsBody.querySelectorAll("[data-subtask-id]").forEach((checkbox) => {
@@ -440,8 +540,7 @@ function renderFilteredTasks() {
   const items = [];
 
   if (mode === "date" && filterDate.value) {
-    const tasks = sortedTasks(state.tasksByDate[filterDate.value] || []);
-    tasks.forEach((task) => items.push(`<li>${task.text} <small>(${task.status || "Not Started"})</small></li>`));
+    sortedTasks(state.tasksByDate[filterDate.value] || []).forEach((task) => items.push(`<li>${task.text} <small>(${task.status || "Not Started"})</small></li>`));
   }
 
   if (mode === "week" && filterWeek.value) {
@@ -450,9 +549,7 @@ function renderFilteredTasks() {
       Object.entries(state.tasksByDate).forEach(([dateKey, tasks]) => {
         const date = parseDateKey(dateKey);
         if (date >= range.start && date <= range.end) {
-          sortedTasks(tasks).forEach((task) =>
-            items.push(`<li>${dateKey}: ${task.text} <small>(${task.status || "Not Started"})</small></li>`)
-          );
+          sortedTasks(tasks).forEach((task) => items.push(`<li>${dateKey}: ${task.text} <small>(${task.status || "Not Started"})</small></li>`));
         }
       });
     }
@@ -469,7 +566,6 @@ function setViewModeUI() {
 }
 
 // Events
-
 document.getElementById("prevMonth").addEventListener("click", () => {
   state.cursorDate.setMonth(state.cursorDate.getMonth() - 1);
   renderCalendar();
@@ -483,6 +579,10 @@ document.getElementById("nextMonth").addEventListener("click", () => {
 document.getElementById("todayBtn").addEventListener("click", () => {
   state.cursorDate = new Date();
   renderCalendar();
+});
+
+taskCategory.addEventListener("change", () => {
+  renderCategoryOptions(taskCategory.value);
 });
 
 calendarGrid.addEventListener("click", (event) => {
@@ -509,6 +609,7 @@ quickAddForm.addEventListener("submit", (event) => {
     category: quickTaskCategory.value,
     priority: quickTaskPriority.value,
     subtasks: [],
+    categoryChecklist: [],
   });
 
   quickAddForm.reset();
@@ -546,11 +647,13 @@ filterWeek.addEventListener("change", renderFilteredTasks);
 
 function init() {
   setupSelects();
+  carryForwardIncompleteTasks();
   renderWeekdays();
   quickTaskDate.value = formatDateKey(new Date());
   filterDate.value = formatDateKey(new Date());
   quickTaskCategory.value = categories[0];
   quickTaskPriority.value = "medium";
+  renderCategoryOptions(taskCategory.value || categories[0]);
   setViewModeUI();
   renderCalendar();
   setInterval(checkReminders, 30000);

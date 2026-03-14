@@ -37,39 +37,18 @@
         <aside class="sidebar card">
           <h2>Task Summary</h2>
           <div class="summary-grid">
-            <article>
-              <h3>Due Today</h3>
-              <p id="dueTodayCount">0</p>
-            </article>
-            <article>
-              <h3>High Priority</h3>
-              <p id="highPriorityCount">0</p>
-            </article>
-            <article>
-              <h3>Completed</h3>
-              <p id="completedCount">0</p>
-            </article>
+            <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
+            <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
+            <article><h3>Completed</h3><p id="completedCount">0</p></article>
           </div>
 
           <div class="quick-add">
             <h3>Quick Add Task</h3>
             <form id="quickAddForm">
-              <label>
-                Task
-                <input type="text" id="quickTaskText" placeholder="e.g. Edit reel clips" required />
-              </label>
-              <label>
-                Date
-                <input type="date" id="quickTaskDate" required />
-              </label>
-              <label>
-                Category
-                <select id="quickTaskCategory"></select>
-              </label>
-              <label>
-                Priority
-                <select id="quickTaskPriority"></select>
-              </label>
+              <label>Task<input type="text" id="quickTaskText" placeholder="e.g. Edit reel clips" required /></label>
+              <label>Date<input type="date" id="quickTaskDate" required /></label>
+              <label>Category<select id="quickTaskCategory"></select></label>
+              <label>Priority<select id="quickTaskPriority"></select></label>
               <button type="submit" class="primary">Add Task</button>
             </form>
           </div>
@@ -77,21 +56,14 @@
           <div class="task-views">
             <h3>Date/Week View</h3>
             <form id="viewFilterForm">
-              <label>
-                View mode
+              <label>View mode
                 <select id="viewMode">
                   <option value="date">Date-wise</option>
                   <option value="week">Week-wise</option>
                 </select>
               </label>
-              <label id="dateFilterWrap">
-                Date
-                <input type="date" id="filterDate" />
-              </label>
-              <label id="weekFilterWrap" class="hidden">
-                Week
-                <input type="week" id="filterWeek" />
-              </label>
+              <label id="dateFilterWrap">Date<input type="date" id="filterDate" /></label>
+              <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
             </form>
             <ul id="filteredTasks" class="filtered-tasks"></ul>
           </div>
@@ -102,16 +74,11 @@
     <dialog id="taskModal">
       <form id="taskForm" method="dialog">
         <h3 id="taskModalTitle">Add Task</h3>
-        <label>
-          Task
-          <input type="text" id="taskText" required />
-        </label>
-        <label>
-          Description
-          <textarea id="taskDescription" rows="3" placeholder="Task details"></textarea>
-        </label>
-        <label>
-          Status
+        <label>Category<select id="taskCategory"></select></label>
+        <div id="categoryOptions" class="category-options hidden"></div>
+        <label>Task<input type="text" id="taskText" required /></label>
+        <label>Description<textarea id="taskDescription" rows="3" placeholder="Task details"></textarea></label>
+        <label>Status
           <select id="taskStatus">
             <option value="Not Started">Not Started</option>
             <option value="In Progress">In Progress</option>
@@ -119,26 +86,10 @@
             <option value="Done">Done</option>
           </select>
         </label>
-        <label>
-          Reminder
-          <input type="datetime-local" id="taskReminder" />
-        </label>
-        <label>
-          Pomodoro (minutes)
-          <input type="number" min="1" max="120" id="taskPomodoro" value="25" />
-        </label>
-        <label>
-          Category
-          <select id="taskCategory"></select>
-        </label>
-        <label>
-          Priority
-          <select id="taskPriority"></select>
-        </label>
-        <label>
-          Subtasks (one per line)
-          <textarea id="taskSubtasks" rows="4" placeholder="Write script&#10;Capture b-roll"></textarea>
-        </label>
+        <label>Reminder<input type="datetime-local" id="taskReminder" /></label>
+        <label>Pomodoro (minutes)<input type="number" min="1" max="120" id="taskPomodoro" value="25" /></label>
+        <label>Priority<select id="taskPriority"></select></label>
+        <label>Subtasks (one per line)<textarea id="taskSubtasks" rows="4" placeholder="Write script&#10;Capture b-roll"></textarea></label>
         <div class="modal-actions">
           <button type="button" id="cancelTaskBtn">Cancel</button>
           <button type="submit" class="primary">Save</button>
@@ -148,20 +99,14 @@
 
     <dialog id="dayTasksModal">
       <article>
-        <div class="section-head">
-          <h3 id="dayTasksTitle">Tasks for date</h3>
-          <button id="closeDayTasks" type="button">Close</button>
-        </div>
+        <div class="section-head"><h3 id="dayTasksTitle">Tasks for date</h3><button id="closeDayTasks" type="button">Close</button></div>
         <ul id="dayTasksList" class="modal-list"></ul>
       </article>
     </dialog>
 
     <dialog id="taskDetailsModal">
       <article>
-        <div class="section-head">
-          <h3 id="taskDetailsTitle">Task Details</h3>
-          <button id="closeTaskDetails" type="button">Close</button>
-        </div>
+        <div class="section-head"><h3 id="taskDetailsTitle">Task Details</h3><button id="closeTaskDetails" type="button">Close</button></div>
         <div class="details-grid" id="taskDetailsBody"></div>
         <div class="pomodoro-box">
           <h4>Pomodoro</h4>
