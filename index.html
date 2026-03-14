@@ -1,74 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Content Planner Calendar Dashboard</title>
+    <title>Content Planner Glass Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="top-bar card">
-        <div>
-          <p class="eyebrow">Production Planner</p>
-          <h1 id="monthLabel">Month Year</h1>
-        </div>
-        <div class="nav-actions">
-          <button id="prevMonth">◀ Prev</button>
-          <button id="todayBtn" class="primary">Today</button>
-          <button id="nextMonth">Next ▶</button>
-        </div>
-      </header>
+    <div class="bg-glow"></div>
+    <div class="app-frame">
+      <aside class="sidebar glass-card">
+        <h2 class="brand">⚡ Planner</h2>
+        <nav>
+          <button class="nav-item active" title="Dashboard">🏠 <span>Dashboard</span></button>
+          <button class="nav-item" title="Calendar">🗓️ <span>Calendar</span></button>
+          <button class="nav-item" title="Pipeline">🧩 <span>Pipeline</span></button>
+          <button class="nav-item" title="Analytics">📈 <span>Analytics</span></button>
+          <button class="nav-item" title="Settings">⚙️ <span>Settings</span></button>
+        </nav>
+      </aside>
 
-      <section class="today-focus card">
-        <div class="section-head">
-          <h2>Today Focus Panel</h2>
-          <span id="todayDateLabel"></span>
-        </div>
-        <div class="kanban" id="todayFocusBoard"></div>
-      </section>
+      <div class="main-col">
+        <header class="top-bar glass-card">
+          <div class="search-wrap">
+            <input id="searchInput" type="search" placeholder="Search tasks..." />
+          </div>
+          <div class="top-actions">
+            <button title="Notifications">🔔</button>
+            <button id="themeToggle" title="Toggle theme">🌓</button>
+            <div class="avatar" title="User">MR</div>
+          </div>
+        </header>
 
-      <main class="layout">
-        <section class="calendar card">
-          <div class="weekday-row" id="weekdayRow"></div>
-          <div class="calendar-grid" id="calendarGrid"></div>
+        <section class="today-focus glass-card">
+          <div class="section-head">
+            <h2>Today Focus Panel</h2>
+            <span id="todayDateLabel"></span>
+          </div>
+          <div class="kanban" id="todayFocusBoard"></div>
         </section>
 
-        <aside class="sidebar card">
-          <h2>Task Summary</h2>
-          <div class="summary-grid">
-            <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
-            <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
-            <article><h3>Completed</h3><p id="completedCount">0</p></article>
-          </div>
+        <div class="workspace-grid">
+          <section class="calendar glass-card">
+            <div class="calendar-header">
+              <div>
+                <p class="eyebrow">Production Planner</p>
+                <h1 id="monthLabel">Month Year</h1>
+              </div>
+              <div class="nav-actions">
+                <button id="prevMonth">◀ Prev</button>
+                <button id="todayBtn" class="primary">Today</button>
+                <button id="nextMonth">Next ▶</button>
+              </div>
+            </div>
+            <div class="weekday-row" id="weekdayRow"></div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </section>
 
-          <div class="quick-add">
-            <h3>Quick Add Task</h3>
-            <form id="quickAddForm">
-              <label>Task<input type="text" id="quickTaskText" placeholder="e.g. Edit reel clips" required /></label>
-              <label>Date<input type="date" id="quickTaskDate" required /></label>
-              <label>Category<select id="quickTaskCategory"></select></label>
-              <label>Priority<select id="quickTaskPriority"></select></label>
-              <button type="submit" class="primary">Add Task</button>
-            </form>
-          </div>
+          <aside class="right-stack">
+            <section class="glass-card">
+              <h2>Task Summary</h2>
+              <div class="summary-grid">
+                <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
+                <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
+                <article><h3>Completed</h3><p id="completedCount">0</p></article>
+              </div>
+            </section>
 
-          <div class="task-views">
-            <h3>Date/Week View</h3>
-            <form id="viewFilterForm">
-              <label>View mode
-                <select id="viewMode">
-                  <option value="date">Date-wise</option>
-                  <option value="week">Week-wise</option>
-                </select>
-              </label>
-              <label id="dateFilterWrap">Date<input type="date" id="filterDate" /></label>
-              <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
-            </form>
-            <ul id="filteredTasks" class="filtered-tasks"></ul>
-          </div>
-        </aside>
-      </main>
+            <section class="glass-card">
+              <h3>Quick Add Task</h3>
+              <form id="quickAddForm">
+                <label>Task<input type="text" id="quickTaskText" required /></label>
+                <label>Date<input type="date" id="quickTaskDate" required /></label>
+                <label>Category<select id="quickTaskCategory"></select></label>
+                <label>Priority<select id="quickTaskPriority"></select></label>
+                <button type="submit" class="primary">Add Task</button>
+              </form>
+            </section>
+
+            <section class="glass-card">
+              <h3>Date/Week View</h3>
+              <form id="viewFilterForm">
+                <label>View mode
+                  <select id="viewMode">
+                    <option value="date">Date-wise</option>
+                    <option value="week">Week-wise</option>
+                  </select>
+                </label>
+                <label id="dateFilterWrap">Date<input type="date" id="filterDate" /></label>
+                <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
+              </form>
+              <ul id="filteredTasks" class="filtered-tasks"></ul>
+            </section>
+
+            <section class="glass-card analytics">
+              <h3>Analytics</h3>
+              <div id="analyticsPanel"></div>
+            </section>
+          </aside>
+        </div>
+      </div>
     </div>
 
     <dialog id="taskModal">
@@ -77,7 +108,7 @@
         <label>Category<select id="taskCategory"></select></label>
         <div id="categoryOptions" class="category-options hidden"></div>
         <label>Task<input type="text" id="taskText" required /></label>
-        <label>Description<textarea id="taskDescription" rows="3" placeholder="Task details"></textarea></label>
+        <label>Description<textarea id="taskDescription" rows="3"></textarea></label>
         <label>Status
           <select id="taskStatus">
             <option value="Not Started">Not Started</option>
@@ -89,7 +120,7 @@
         <label>Reminder<input type="datetime-local" id="taskReminder" /></label>
         <label>Pomodoro (minutes)<input type="number" min="1" max="120" id="taskPomodoro" value="25" /></label>
         <label>Priority<select id="taskPriority"></select></label>
-        <label>Subtasks (one per line)<textarea id="taskSubtasks" rows="4" placeholder="Write script&#10;Capture b-roll"></textarea></label>
+        <label>Subtasks (one per line)<textarea id="taskSubtasks" rows="3"></textarea></label>
         <div class="modal-actions">
           <button type="button" id="cancelTaskBtn">Cancel</button>
           <button type="submit" class="primary">Save</button>
@@ -108,6 +139,13 @@
       <article>
         <div class="section-head"><h3 id="taskDetailsTitle">Task Details</h3><button id="closeTaskDetails" type="button">Close</button></div>
         <div class="details-grid" id="taskDetailsBody"></div>
+
+        <div class="subtask-input-row">
+          <button id="addSubtaskBtn" type="button" title="Add subtask">＋</button>
+          <input id="newSubtaskInput" type="text" placeholder="Add subtask..." />
+        </div>
+        <ul id="subtaskList" class="subtask-list"></ul>
+
         <div class="pomodoro-box">
           <h4>Pomodoro</h4>
           <p id="pomodoroDisplay">25:00</p>
