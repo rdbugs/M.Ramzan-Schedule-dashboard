@@ -73,6 +73,28 @@
               <button type="submit" class="primary">Add Task</button>
             </form>
           </div>
+
+          <div class="task-views">
+            <h3>Date/Week View</h3>
+            <form id="viewFilterForm">
+              <label>
+                View mode
+                <select id="viewMode">
+                  <option value="date">Date-wise</option>
+                  <option value="week">Week-wise</option>
+                </select>
+              </label>
+              <label id="dateFilterWrap">
+                Date
+                <input type="date" id="filterDate" />
+              </label>
+              <label id="weekFilterWrap" class="hidden">
+                Week
+                <input type="week" id="filterWeek" />
+              </label>
+            </form>
+            <ul id="filteredTasks" class="filtered-tasks"></ul>
+          </div>
         </aside>
       </main>
     </div>
@@ -85,6 +107,27 @@
           <input type="text" id="taskText" required />
         </label>
         <label>
+          Description
+          <textarea id="taskDescription" rows="3" placeholder="Task details"></textarea>
+        </label>
+        <label>
+          Status
+          <select id="taskStatus">
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Blocked">Blocked</option>
+            <option value="Done">Done</option>
+          </select>
+        </label>
+        <label>
+          Reminder
+          <input type="datetime-local" id="taskReminder" />
+        </label>
+        <label>
+          Pomodoro (minutes)
+          <input type="number" min="1" max="120" id="taskPomodoro" value="25" />
+        </label>
+        <label>
           Category
           <select id="taskCategory"></select>
         </label>
@@ -92,11 +135,40 @@
           Priority
           <select id="taskPriority"></select>
         </label>
+        <label>
+          Subtasks (one per line)
+          <textarea id="taskSubtasks" rows="4" placeholder="Write script&#10;Capture b-roll"></textarea>
+        </label>
         <div class="modal-actions">
           <button type="button" id="cancelTaskBtn">Cancel</button>
           <button type="submit" class="primary">Save</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="dayTasksModal">
+      <article>
+        <div class="section-head">
+          <h3 id="dayTasksTitle">Tasks for date</h3>
+          <button id="closeDayTasks" type="button">Close</button>
+        </div>
+        <ul id="dayTasksList" class="modal-list"></ul>
+      </article>
+    </dialog>
+
+    <dialog id="taskDetailsModal">
+      <article>
+        <div class="section-head">
+          <h3 id="taskDetailsTitle">Task Details</h3>
+          <button id="closeTaskDetails" type="button">Close</button>
+        </div>
+        <div class="details-grid" id="taskDetailsBody"></div>
+        <div class="pomodoro-box">
+          <h4>Pomodoro</h4>
+          <p id="pomodoroDisplay">25:00</p>
+          <button id="startPomodoro" type="button" class="primary">Start</button>
+        </div>
+      </article>
     </dialog>
 
     <script src="app.js"></script>

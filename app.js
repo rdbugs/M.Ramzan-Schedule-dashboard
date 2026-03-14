@@ -1,4 +1,4 @@
-const STORAGE_KEY = "content-planner-tasks-v1";
+const STORAGE_KEY = "content-planner-tasks-v2";
 
 const categories = [
   "Video Shoot",
@@ -20,25 +20,50 @@ const state = {
   tasksByDate: loadTasks(),
   modalDateKey: null,
   editingTaskId: null,
+  reminders: new Set(),
+  detailTaskRef: null,
+  pomodoroTimer: null,
+  pomodoroSecondsLeft: 25 * 60,
 };
 
 const monthLabel = document.getElementById("monthLabel");
 const todayDateLabel = document.getElementById("todayDateLabel");
 const calendarGrid = document.getElementById("calendarGrid");
 const weekdayRow = document.getElementById("weekdayRow");
+
 const taskModal = document.getElementById("taskModal");
 const taskForm = document.getElementById("taskForm");
 const taskModalTitle = document.getElementById("taskModalTitle");
-
 const taskText = document.getElementById("taskText");
+const taskDescription = document.getElementById("taskDescription");
+const taskStatus = document.getElementById("taskStatus");
+const taskReminder = document.getElementById("taskReminder");
+const taskPomodoro = document.getElementById("taskPomodoro");
 const taskCategory = document.getElementById("taskCategory");
 const taskPriority = document.getElementById("taskPriority");
+const taskSubtasks = document.getElementById("taskSubtasks");
 
 const quickAddForm = document.getElementById("quickAddForm");
 const quickTaskText = document.getElementById("quickTaskText");
 const quickTaskDate = document.getElementById("quickTaskDate");
 const quickTaskCategory = document.getElementById("quickTaskCategory");
 const quickTaskPriority = document.getElementById("quickTaskPriority");
+
+const dayTasksModal = document.getElementById("dayTasksModal");
+const dayTasksTitle = document.getElementById("dayTasksTitle");
+const dayTasksList = document.getElementById("dayTasksList");
+
+const taskDetailsModal = document.getElementById("taskDetailsModal");
+const taskDetailsTitle = document.getElementById("taskDetailsTitle");
+const taskDetailsBody = document.getElementById("taskDetailsBody");
+const pomodoroDisplay = document.getElementById("pomodoroDisplay");
+
+const viewMode = document.getElementById("viewMode");
+const dateFilterWrap = document.getElementById("dateFilterWrap");
+const weekFilterWrap = document.getElementById("weekFilterWrap");
+const filterDate = document.getElementById("filterDate");
+const filterWeek = document.getElementById("filterWeek");
+const filteredTasks = document.getElementById("filteredTasks");
 
 function loadTasks() {
   try {
@@ -63,28 +88,29 @@ function parseDateKey(dateKey) {
   return new Date(`${dateKey}T00:00:00`);
 }
 
+function safeUUID() {
+  return crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function setupSelects() {
   const categoryOptions = categories.map((c) => `<option value="${c}">${c}</option>`).join("");
-  const priorityOptions = priorities
-    .map((p) => `<option value="${p.value}">${p.label}</option>`)
-    .join("");
-
-  [taskCategory, quickTaskCategory].forEach((select) => {
-    select.innerHTML = categoryOptions;
-  });
-
-  [taskPriority, quickTaskPriority].forEach((select) => {
-    select.innerHTML = priorityOptions;
-  });
+  const priorityOptions = priorities.map((p) => `<option value="${p.value}">${p.label}</option>`).join("");
+  [taskCategory, quickTaskCategory].forEach((select) => (select.innerHTML = categoryOptions));
+  [taskPriority, quickTaskPriority].forEach((select) => (select.innerHTML = priorityOptions));
 }
 
 function renderWeekdays() {
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  weekdayRow.innerHTML = days.map((day) => `<div>${day}</div>`).join("");
+  weekdayRow.innerHTML = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<div>${day}</div>`).join("");
 }
 
 function sortedTasks(tasks) {
   return [...tasks].sort((a, b) => Number(a.completed) - Number(b.completed));
+}
+
+function emojiPriority(priority) {
+  if (priority === "high") return "🔴 High";
+  if (priority === "medium") return "🟠 Medium";
+  return "🟢 Low";
 }
 
 function renderCalendar() {
@@ -95,11 +121,7 @@ function renderCalendar() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
 
-  monthLabel.textContent = firstDay.toLocaleString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-
+  monthLabel.textContent = firstDay.toLocaleString("en-US", { month: "long", year: "numeric" });
   calendarGrid.innerHTML = "";
 
   for (let i = 0; i < totalCells; i += 1) {
@@ -109,10 +131,8 @@ function renderCalendar() {
     const isCurrentMonth = date.getMonth() === month;
 
     const cell = document.createElement("article");
-    cell.className = `day-cell${isCurrentMonth ? "" : " outside"}${
-      dateKey === formatDateKey(new Date()) ? " today" : ""
-    }`;
-
+    cell.className = `day-cell${isCurrentMonth ? "" : " outside"}${dateKey === formatDateKey(new Date()) ? " today" : ""}`;
+    cell.dataset.dateKey = dateKey;
     cell.innerHTML = `
       <div class="day-head">
         <strong>${date.getDate()}</strong>
@@ -127,11 +147,7 @@ function renderCalendar() {
       event.preventDefault();
       listEl.style.background = "#eff6ff";
     });
-
-    listEl.addEventListener("dragleave", () => {
-      listEl.style.background = "";
-    });
-
+    listEl.addEventListener("dragleave", () => (listEl.style.background = ""));
     listEl.addEventListener("drop", (event) => {
       event.preventDefault();
       listEl.style.background = "";
@@ -141,29 +157,26 @@ function renderCalendar() {
       moveTask(fromDateKey, dateKey, taskId);
     });
 
-    dayTasks.forEach((task) => {
-      listEl.appendChild(createTaskElement(task, dateKey));
-    });
-
+    dayTasks.forEach((task) => listEl.appendChild(createTaskElement(task, dateKey)));
     calendarGrid.appendChild(cell);
   }
 
   renderTodayFocusPanel();
   renderSummary();
+  renderFilteredTasks();
+  checkReminders();
 }
 
 function createTaskElement(task, dateKey) {
   const li = document.createElement("li");
   li.className = `task-item priority-${task.priority}`;
   li.draggable = true;
-  li.dataset.taskId = task.id;
 
   li.addEventListener("dragstart", (event) => {
-    event.dataTransfer.setData(
-      "text/plain",
-      JSON.stringify({ fromDateKey: dateKey, taskId: task.id })
-    );
+    event.dataTransfer.setData("text/plain", JSON.stringify({ fromDateKey: dateKey, taskId: task.id }));
   });
+
+  const subtaskSummary = task.subtasks?.length ? `<span class="pill">${task.subtasks.filter((s) => s.done).length}/${task.subtasks.length} subtasks</span>` : "";
 
   li.innerHTML = `
     <div class="task-main">
@@ -173,32 +186,22 @@ function createTaskElement(task, dateKey) {
     <div class="task-meta">
       <span class="pill">${task.category}</span>
       <span class="pill priority-pill ${task.priority}">${emojiPriority(task.priority)}</span>
+      <span class="pill">${task.status || "Not Started"}</span>
+      ${subtaskSummary}
     </div>
     <div class="task-actions">
+      <button type="button" data-view="${task.id}">View</button>
       <button type="button" data-edit="${task.id}">Edit</button>
       <button type="button" data-delete="${task.id}">Delete</button>
     </div>
   `;
 
-  li.querySelector(`[data-toggle="${task.id}"]`).addEventListener("change", () => {
-    toggleTask(dateKey, task.id);
-  });
-
-  li.querySelector(`[data-edit="${task.id}"]`).addEventListener("click", () => {
-    openTaskModal(dateKey, task);
-  });
-
-  li.querySelector(`[data-delete="${task.id}"]`).addEventListener("click", () => {
-    deleteTask(dateKey, task.id);
-  });
+  li.querySelector(`[data-toggle="${task.id}"]`).addEventListener("change", () => toggleTask(dateKey, task.id));
+  li.querySelector(`[data-view="${task.id}"]`).addEventListener("click", () => openTaskDetails(dateKey, task.id));
+  li.querySelector(`[data-edit="${task.id}"]`).addEventListener("click", () => openTaskModal(dateKey, task));
+  li.querySelector(`[data-delete="${task.id}"]`).addEventListener("click", () => deleteTask(dateKey, task.id));
 
   return li;
-}
-
-function emojiPriority(priority) {
-  if (priority === "high") return "🔴 High";
-  if (priority === "medium") return "🟠 Medium";
-  return "🟢 Low";
 }
 
 function openTaskModal(dateKey, task = null) {
@@ -206,25 +209,56 @@ function openTaskModal(dateKey, task = null) {
   state.editingTaskId = task?.id || null;
   taskModalTitle.textContent = task ? "Edit Task" : "Add Task";
   taskText.value = task?.text || "";
+  taskDescription.value = task?.description || "";
+  taskStatus.value = task?.status || "Not Started";
+  taskReminder.value = task?.reminder || "";
+  taskPomodoro.value = task?.pomodoroMinutes || 25;
   taskCategory.value = task?.category || categories[0];
   taskPriority.value = task?.priority || "medium";
+  taskSubtasks.value = task?.subtasks?.map((sub) => sub.title).join("\n") || "";
   taskModal.showModal();
 }
 
-function addOrUpdateTask(dateKey, payload) {
+function collectTaskPayload() {
+  const subtaskTitles = taskSubtasks.value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const existing = (state.tasksByDate[state.modalDateKey] || []).find((task) => task.id === state.editingTaskId);
+  const subtasks = subtaskTitles.map((title) => {
+    const old = existing?.subtasks?.find((sub) => sub.title === title);
+    return old ? old : { id: safeUUID(), title, done: false };
+  });
+
+  return {
+    text: taskText.value.trim(),
+    description: taskDescription.value.trim(),
+    status: taskStatus.value,
+    reminder: taskReminder.value,
+    pomodoroMinutes: Number(taskPomodoro.value) || 25,
+    category: taskCategory.value,
+    priority: taskPriority.value,
+    subtasks,
+  };
+}
+
+function addOrUpdateTask(dateKey, payload, taskId = null) {
   const tasks = state.tasksByDate[dateKey] || [];
-  if (payload.id) {
-    state.tasksByDate[dateKey] = tasks.map((task) => (task.id === payload.id ? payload : task));
+
+  if (taskId) {
+    state.tasksByDate[dateKey] = tasks.map((task) => (task.id === taskId ? { ...task, ...payload } : task));
   } else {
     state.tasksByDate[dateKey] = [
       ...tasks,
       {
-        id: crypto.randomUUID(),
-        ...payload,
+        id: safeUUID(),
         completed: false,
+        ...payload,
       },
     ];
   }
+
   saveTasks();
   renderCalendar();
 }
@@ -252,7 +286,6 @@ function moveTask(fromDateKey, toDateKey, taskId) {
 
   state.tasksByDate[fromDateKey] = fromTasks.filter((task) => task.id !== taskId);
   state.tasksByDate[toDateKey] = [...(state.tasksByDate[toDateKey] || []), movingTask];
-
   saveTasks();
   renderCalendar();
 }
@@ -260,18 +293,15 @@ function moveTask(fromDateKey, toDateKey, taskId) {
 function renderSummary() {
   const allTasks = Object.values(state.tasksByDate).flat();
   const todayKey = formatDateKey(new Date());
-  const dueToday = (state.tasksByDate[todayKey] || []).length;
-  const highPriority = allTasks.filter((task) => task.priority === "high" && !task.completed).length;
-  const completed = allTasks.filter((task) => task.completed).length;
-
-  document.getElementById("dueTodayCount").textContent = dueToday;
-  document.getElementById("highPriorityCount").textContent = highPriority;
-  document.getElementById("completedCount").textContent = completed;
+  document.getElementById("dueTodayCount").textContent = (state.tasksByDate[todayKey] || []).length;
+  document.getElementById("highPriorityCount").textContent = allTasks.filter((task) => task.priority === "high" && !task.completed).length;
+  document.getElementById("completedCount").textContent = allTasks.filter((task) => task.completed).length;
 }
 
 function renderTodayFocusPanel() {
   const todayKey = formatDateKey(new Date());
   const todaysTasks = sortedTasks(state.tasksByDate[todayKey] || []);
+
   todayDateLabel.textContent = parseDateKey(todayKey).toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
@@ -285,8 +315,7 @@ function renderTodayFocusPanel() {
     done: todaysTasks.filter((task) => task.completed),
   };
 
-  const board = document.getElementById("todayFocusBoard");
-  board.innerHTML = [
+  document.getElementById("todayFocusBoard").innerHTML = [
     columnTemplate("High Impact", groups.high),
     columnTemplate("Medium", groups.medium),
     columnTemplate("Low", groups.low),
@@ -295,13 +324,151 @@ function renderTodayFocusPanel() {
 }
 
 function columnTemplate(title, tasks) {
-  const list = tasks.length
-    ? tasks.map((task) => `<li class="pill">${task.text}</li>`).join("")
-    : `<li class="pill">No tasks</li>`;
+  const list = tasks.length ? tasks.map((task) => `<li class="pill">${task.text}</li>`).join("") : `<li class="pill">No tasks</li>`;
   return `<section class="kanban-column"><h3>${title}</h3><ul>${list}</ul></section>`;
 }
 
-// Event listeners
+function openDayTasksModal(dateKey) {
+  const tasks = sortedTasks(state.tasksByDate[dateKey] || []);
+  dayTasksTitle.textContent = `Tasks for ${parseDateKey(dateKey).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+
+  dayTasksList.innerHTML = tasks.length
+    ? tasks
+        .map(
+          (task) =>
+            `<li><strong>${task.text}</strong><br /><small>${task.status || "Not Started"} • ${emojiPriority(task.priority)} • ${task.category}</small></li>`
+        )
+        .join("")
+    : "<li>No tasks for this day.</li>";
+
+  dayTasksModal.showModal();
+}
+
+function openTaskDetails(dateKey, taskId) {
+  const task = (state.tasksByDate[dateKey] || []).find((item) => item.id === taskId);
+  if (!task) return;
+
+  state.detailTaskRef = { dateKey, taskId };
+  state.pomodoroSecondsLeft = (task.pomodoroMinutes || 25) * 60;
+  renderPomodoroDisplay();
+
+  taskDetailsTitle.textContent = task.text;
+  taskDetailsBody.innerHTML = `
+    <p><strong>Description:</strong> ${task.description || "No description"}</p>
+    <p><strong>Status:</strong> ${task.status || "Not Started"}</p>
+    <p><strong>Category:</strong> ${task.category}</p>
+    <p><strong>Priority:</strong> ${emojiPriority(task.priority)}</p>
+    <p><strong>Reminder:</strong> ${task.reminder ? new Date(task.reminder).toLocaleString() : "No reminder"}</p>
+    <div><strong>Subtasks:</strong><ul>${
+      task.subtasks?.length
+        ? task.subtasks
+            .map(
+              (subtask) =>
+                `<li><label><input type="checkbox" data-subtask-id="${subtask.id}" ${subtask.done ? "checked" : ""} /> ${subtask.title}</label></li>`
+            )
+            .join("")
+        : "<li>No subtasks</li>"
+    }</ul></div>
+  `;
+
+  taskDetailsBody.querySelectorAll("[data-subtask-id]").forEach((checkbox) => {
+    checkbox.addEventListener("change", (event) => toggleSubtask(dateKey, taskId, event.target.dataset.subtaskId));
+  });
+
+  taskDetailsModal.showModal();
+}
+
+function toggleSubtask(dateKey, taskId, subtaskId) {
+  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) => {
+    if (task.id !== taskId) return task;
+    const subtasks = (task.subtasks || []).map((sub) => (sub.id === subtaskId ? { ...sub, done: !sub.done } : sub));
+    return { ...task, subtasks };
+  });
+  saveTasks();
+  renderCalendar();
+  openTaskDetails(dateKey, taskId);
+}
+
+function renderPomodoroDisplay() {
+  const min = String(Math.floor(state.pomodoroSecondsLeft / 60)).padStart(2, "0");
+  const sec = String(state.pomodoroSecondsLeft % 60).padStart(2, "0");
+  pomodoroDisplay.textContent = `${min}:${sec}`;
+}
+
+function startPomodoro() {
+  if (state.pomodoroTimer) clearInterval(state.pomodoroTimer);
+  state.pomodoroTimer = setInterval(() => {
+    state.pomodoroSecondsLeft -= 1;
+    renderPomodoroDisplay();
+    if (state.pomodoroSecondsLeft <= 0) {
+      clearInterval(state.pomodoroTimer);
+      state.pomodoroTimer = null;
+      alert("Pomodoro complete! Time for a short break.");
+    }
+  }, 1000);
+}
+
+function checkReminders() {
+  const now = Date.now();
+  Object.entries(state.tasksByDate).forEach(([dateKey, tasks]) => {
+    tasks.forEach((task) => {
+      if (!task.reminder) return;
+      const key = `${dateKey}-${task.id}`;
+      const ts = new Date(task.reminder).getTime();
+      if (!Number.isNaN(ts) && ts <= now && !state.reminders.has(key)) {
+        state.reminders.add(key);
+        alert(`Reminder: ${task.text}`);
+      }
+    });
+  });
+}
+
+function weekRangeFromWeekInput(weekValue) {
+  const [year, week] = weekValue.split("-W").map(Number);
+  if (!year || !week) return null;
+  const simple = new Date(year, 0, 1 + (week - 1) * 7);
+  const dow = simple.getDay();
+  const monday = new Date(simple);
+  monday.setDate(simple.getDate() - ((dow + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
+}
+
+function renderFilteredTasks() {
+  const mode = viewMode.value;
+  const items = [];
+
+  if (mode === "date" && filterDate.value) {
+    const tasks = sortedTasks(state.tasksByDate[filterDate.value] || []);
+    tasks.forEach((task) => items.push(`<li>${task.text} <small>(${task.status || "Not Started"})</small></li>`));
+  }
+
+  if (mode === "week" && filterWeek.value) {
+    const range = weekRangeFromWeekInput(filterWeek.value);
+    if (range) {
+      Object.entries(state.tasksByDate).forEach(([dateKey, tasks]) => {
+        const date = parseDateKey(dateKey);
+        if (date >= range.start && date <= range.end) {
+          sortedTasks(tasks).forEach((task) =>
+            items.push(`<li>${dateKey}: ${task.text} <small>(${task.status || "Not Started"})</small></li>`)
+          );
+        }
+      });
+    }
+  }
+
+  filteredTasks.innerHTML = items.length ? items.join("") : "<li>No tasks in selected filter.</li>";
+}
+
+function setViewModeUI() {
+  const isDate = viewMode.value === "date";
+  dateFilterWrap.classList.toggle("hidden", !isDate);
+  weekFilterWrap.classList.toggle("hidden", isDate);
+  renderFilteredTasks();
+}
+
+// Events
 
 document.getElementById("prevMonth").addEventListener("click", () => {
   state.cursorDate.setMonth(state.cursorDate.getMonth() - 1);
@@ -319,18 +486,31 @@ document.getElementById("todayBtn").addEventListener("click", () => {
 });
 
 calendarGrid.addEventListener("click", (event) => {
-  const btn = event.target.closest("button[data-add]");
-  if (!btn) return;
-  openTaskModal(btn.dataset.add);
+  const addBtn = event.target.closest("button[data-add]");
+  if (addBtn) {
+    openTaskModal(addBtn.dataset.add);
+    return;
+  }
+
+  const cell = event.target.closest(".day-cell");
+  if (cell && !event.target.closest(".task-item")) {
+    openDayTasksModal(cell.dataset.dateKey);
+  }
 });
 
 quickAddForm.addEventListener("submit", (event) => {
   event.preventDefault();
   addOrUpdateTask(quickTaskDate.value, {
     text: quickTaskText.value.trim(),
+    description: "",
+    status: "Not Started",
+    reminder: "",
+    pomodoroMinutes: 25,
     category: quickTaskCategory.value,
     priority: quickTaskPriority.value,
+    subtasks: [],
   });
+
   quickAddForm.reset();
   quickTaskDate.value = formatDateKey(new Date());
   quickTaskCategory.value = categories[0];
@@ -339,29 +519,41 @@ quickAddForm.addEventListener("submit", (event) => {
 
 taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  addOrUpdateTask(state.modalDateKey, {
-    id: state.editingTaskId,
-    text: taskText.value.trim(),
-    category: taskCategory.value,
-    priority: taskPriority.value,
-    completed:
-      (state.tasksByDate[state.modalDateKey] || []).find((task) => task.id === state.editingTaskId)
-        ?.completed || false,
-  });
+  const payload = collectTaskPayload();
+
+  if (state.editingTaskId) {
+    addOrUpdateTask(state.modalDateKey, payload, state.editingTaskId);
+  } else {
+    addOrUpdateTask(state.modalDateKey, payload, null);
+  }
+
+  state.editingTaskId = null;
   taskModal.close();
 });
 
 document.getElementById("cancelTaskBtn").addEventListener("click", () => {
+  state.editingTaskId = null;
   taskModal.close();
 });
+
+document.getElementById("closeDayTasks").addEventListener("click", () => dayTasksModal.close());
+document.getElementById("closeTaskDetails").addEventListener("click", () => taskDetailsModal.close());
+document.getElementById("startPomodoro").addEventListener("click", startPomodoro);
+
+viewMode.addEventListener("change", setViewModeUI);
+filterDate.addEventListener("change", renderFilteredTasks);
+filterWeek.addEventListener("change", renderFilteredTasks);
 
 function init() {
   setupSelects();
   renderWeekdays();
   quickTaskDate.value = formatDateKey(new Date());
+  filterDate.value = formatDateKey(new Date());
   quickTaskCategory.value = categories[0];
   quickTaskPriority.value = "medium";
+  setViewModeUI();
   renderCalendar();
+  setInterval(checkReminders, 30000);
 }
 
 init();
