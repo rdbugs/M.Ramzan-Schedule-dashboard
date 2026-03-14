@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Content Planner Calendar Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-bar card">
+        <div>
+          <p class="eyebrow">Production Planner</p>
+          <h1 id="monthLabel">Month Year</h1>
+        </div>
+        <div class="nav-actions">
+          <button id="prevMonth">◀ Prev</button>
+          <button id="todayBtn" class="primary">Today</button>
+          <button id="nextMonth">Next ▶</button>
+        </div>
+      </header>
+
+      <section class="today-focus card">
+        <div class="section-head">
+          <h2>Today Focus Panel</h2>
+          <span id="todayDateLabel"></span>
+        </div>
+        <div class="kanban" id="todayFocusBoard"></div>
+      </section>
+
+      <main class="layout">
+        <section class="calendar card">
+          <div class="weekday-row" id="weekdayRow"></div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+
+        <aside class="sidebar card">
+          <h2>Task Summary</h2>
+          <div class="summary-grid">
+            <article>
+              <h3>Due Today</h3>
+              <p id="dueTodayCount">0</p>
+            </article>
+            <article>
+              <h3>High Priority</h3>
+              <p id="highPriorityCount">0</p>
+            </article>
+            <article>
+              <h3>Completed</h3>
+              <p id="completedCount">0</p>
+            </article>
+          </div>
+
+          <div class="quick-add">
+            <h3>Quick Add Task</h3>
+            <form id="quickAddForm">
+              <label>
+                Task
+                <input type="text" id="quickTaskText" placeholder="e.g. Edit reel clips" required />
+              </label>
+              <label>
+                Date
+                <input type="date" id="quickTaskDate" required />
+              </label>
+              <label>
+                Category
+                <select id="quickTaskCategory"></select>
+              </label>
+              <label>
+                Priority
+                <select id="quickTaskPriority"></select>
+              </label>
+              <button type="submit" class="primary">Add Task</button>
+            </form>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="taskModal">
+      <form id="taskForm" method="dialog">
+        <h3 id="taskModalTitle">Add Task</h3>
+        <label>
+          Task
+          <input type="text" id="taskText" required />
+        </label>
+        <label>
+          Category
+          <select id="taskCategory"></select>
+        </label>
+        <label>
+          Priority
+          <select id="taskPriority"></select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="cancelTaskBtn">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
