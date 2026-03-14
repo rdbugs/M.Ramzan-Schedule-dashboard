@@ -23,10 +23,10 @@
       <div class="main-col">
         <header class="top-bar glass-card">
           <div class="search-wrap">
-            <input id="searchInput" type="search" placeholder="Search tasks..." />
+            <input id="searchInput" type="search" placeholder="Search task / category / subtask..." />
           </div>
           <div class="top-actions">
-            <button title="Notifications">🔔</button>
+            <button id="notificationBtn" title="Notifications">🔔</button>
             <button id="themeToggle" title="Toggle theme">🌓</button>
             <div class="avatar" title="User">MR</div>
           </div>
@@ -38,6 +38,14 @@
             <span id="todayDateLabel"></span>
           </div>
           <div class="kanban" id="todayFocusBoard"></div>
+        </section>
+
+        <section class="pipeline glass-card">
+          <div class="section-head">
+            <h2>Content Pipeline Timeline</h2>
+            <small>Drag cards between stages</small>
+          </div>
+          <div id="pipelineBoard" class="pipeline-board"></div>
         </section>
 
         <div class="workspace-grid">
@@ -102,6 +110,13 @@
       </div>
     </div>
 
+    <aside id="notificationCenter" class="notification-center glass-card hidden">
+      <div class="section-head"><h3>Notifications</h3><button id="closeNotifications">✕</button></div>
+      <ul id="notificationList"></ul>
+    </aside>
+
+    <div id="taskTooltip" class="task-tooltip hidden"></div>
+
     <dialog id="taskModal">
       <form id="taskForm" method="dialog">
         <h3 id="taskModalTitle">Add Task</h3>
@@ -115,6 +130,16 @@
             <option value="In Progress">In Progress</option>
             <option value="Blocked">Blocked</option>
             <option value="Done">Done</option>
+          </select>
+        </label>
+        <label>Pipeline Stage
+          <select id="taskStage">
+            <option>Idea</option>
+            <option>Shoot</option>
+            <option>Edit</option>
+            <option>Review</option>
+            <option>Post</option>
+            <option>Completed</option>
           </select>
         </label>
         <label>Reminder<input type="datetime-local" id="taskReminder" /></label>
