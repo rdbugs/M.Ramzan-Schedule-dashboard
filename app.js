@@ -46,13 +46,13 @@ const state = {
   reminders: new Set(),
   pomodoroTimer: null,
   pomodoroSecondsLeft: 25 * 60,
+  activeView: "dashboard",
 };
 
 const monthLabel = document.getElementById("monthLabel");
 const todayDateLabel = document.getElementById("todayDateLabel");
 const calendarGrid = document.getElementById("calendarGrid");
 const weekdayRow = document.getElementById("weekdayRow");
-const analyticsPanel = document.getElementById("analyticsPanel");
 const pipelineBoard = document.getElementById("pipelineBoard");
 const tooltip = document.getElementById("taskTooltip");
 
@@ -96,24 +96,43 @@ const filteredTasks = document.getElementById("filteredTasks");
 
 const notificationCenter = document.getElementById("notificationCenter");
 const notificationList = document.getElementById("notificationList");
+const searchInput = document.getElementById("searchInput");
 
 function loadTasks() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
 }
-function saveTasks() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasksByDate)); }
+function saveTasks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasksByDate));
+}
+
 function formatDateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
-function parseDateKey(dateKey) { return new Date(`${dateKey}T00:00:00`); }
-function safeUUID() { return crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
-function getCategoryColor(category) { return categoryColors[category] || "#e2e8f0"; }
-function getPriorityColor(priority) { return priority === "high" ? "#ef4444" : priority === "medium" ? "#f97316" : "#22c55e"; }
+function parseDateKey(dateKey) {
+  return new Date(`${dateKey}T00:00:00`);
+}
+function safeUUID() {
+  return crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+function getCategoryColor(category) {
+  return categoryColors[category] || "#e2e8f0";
+}
 function shadeColor(hex, opacity = 0.18) {
   const value = hex.replace("#", "");
   return `rgba(${parseInt(value.substring(0, 2), 16)}, ${parseInt(value.substring(2, 4), 16)}, ${parseInt(value.substring(4, 6), 16)}, ${opacity})`;
+}
+function sortedTasks(tasks) {
+  return [...tasks].sort((a, b) => Number(a.completed) - Number(b.completed));
+}
+function emojiPriority(priority) {
+  return priority === "high" ? "🔴 High" : priority === "medium" ? "🟠 Medium" : "🟢 Low";
 }
 
 function setupSelects() {
@@ -122,11 +141,10 @@ function setupSelects() {
   [taskCategory, quickTaskCategory].forEach((select) => (select.innerHTML = categoryOptionsHtml));
   [taskPriority, quickTaskPriority].forEach((select) => (select.innerHTML = priorityOptions));
 }
+
 function renderWeekdays() {
   weekdayRow.innerHTML = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => `<div>${day}</div>`).join("");
 }
-function sortedTasks(tasks) { return [...tasks].sort((a, b) => Number(a.completed) - Number(b.completed)); }
-function emojiPriority(priority) { return priority === "high" ? "🔴 High" : priority === "medium" ? "🟠 Medium" : "🟢 Low"; }
 
 function carryForwardIncompleteTasks() {
   const todayKey = formatDateKey(new Date());
@@ -156,6 +174,12 @@ function subtaskProgress(task) {
   const total = (task.subtasks || []).length;
   const done = (task.subtasks || []).filter((s) => s.done).length;
   return { done, total };
+}
+
+function taskMatchesSearch(task, q) {
+  if (!q) return true;
+  const hay = [task.text, task.category, task.description, ...(task.subtasks || []).map((s) => s.title)].join(" ").toLowerCase();
+  return hay.includes(q);
 }
 
 function renderCalendar(searchQuery = "") {
@@ -200,7 +224,6 @@ function renderCalendar(searchQuery = "") {
   renderTodayFocusPanel();
   renderSummary();
   renderFilteredTasks();
-  renderAnalytics();
   renderPipelineTimeline();
   renderNotifications();
   checkReminders();
@@ -225,7 +248,7 @@ function createTaskElement(task, dateKey) {
   const warn = isOverdue(task, dateKey) ? "⚠️" : "";
   li.innerHTML = `
     <div class="task-main"><input type="checkbox" data-toggle="${task.id}" ${task.completed ? "checked" : ""} /><span class="task-title ${task.completed ? "done" : ""}">${warn} ${task.text}</span></div>
-    <div class="task-meta"><span class="pill" style="background:${shadeColor(categoryColor,.45)}">${task.category}</span><span class="pill priority-pill ${task.priority}">${emojiPriority(task.priority)}</span><span class="pill">${task.stage || "Idea"}</span>${carryInfo}<span class="sub-progress">◔ ${p.done}/${p.total || 0}</span></div>
+    <div class="task-meta"><span class="pill" style="background:${shadeColor(categoryColor, 0.45)}">${task.category}</span><span class="pill priority-pill ${task.priority}">${emojiPriority(task.priority)}</span><span class="pill">${task.stage || "Idea"}</span>${carryInfo}<span class="sub-progress">◔ ${p.done}/${p.total || 0}</span></div>
     <div class="task-actions"><button type="button" data-view="${task.id}">View</button><button type="button" data-edit="${task.id}">Edit</button><button type="button" data-delete="${task.id}">Delete</button></div>
   `;
 
@@ -254,8 +277,13 @@ function showTooltip(e) {
     tooltip.classList.remove("hidden");
   } catch {}
 }
-function moveTooltip(e) { tooltip.style.left = `${e.clientX + 14}px`; tooltip.style.top = `${e.clientY + 14}px`; }
-function hideTooltip() { tooltip.classList.add("hidden"); }
+function moveTooltip(e) {
+  tooltip.style.left = `${e.clientX + 14}px`;
+  tooltip.style.top = `${e.clientY + 14}px`;
+}
+function hideTooltip() {
+  tooltip.classList.add("hidden");
+}
 
 function renderCategoryOptions(selectedCategory, existingChecks = []) {
   const items = categoryChecklistTemplates[selectedCategory] || [];
@@ -311,12 +339,12 @@ function addOrUpdateTask(dateKey, payload, taskId = null) {
     ? tasks.map((task) => (task.id === taskId ? { ...task, ...payload } : task))
     : [...tasks, { id: safeUUID(), completed: false, ...payload }];
   saveTasks();
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 function deleteTask(dateKey, taskId) {
   state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).filter((task) => task.id !== taskId);
   saveTasks();
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function toggleTask(dateKey, taskId) {
@@ -326,7 +354,7 @@ function toggleTask(dateKey, taskId) {
     return { ...task, completed, status: completed ? "Done" : task.status === "Done" ? "In Progress" : task.status };
   });
   saveTasks();
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function moveTask(fromDateKey, toDateKey, taskId) {
@@ -337,7 +365,7 @@ function moveTask(fromDateKey, toDateKey, taskId) {
   state.tasksByDate[fromDateKey] = fromTasks.filter((task) => task.id !== taskId);
   state.tasksByDate[toDateKey] = [...(state.tasksByDate[toDateKey] || []), movingTask];
   saveTasks();
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function renderSummary() {
@@ -390,8 +418,7 @@ function renderKanbanCards(tasks, dateKey) {
   if (!tasks.length) return `<li class="pill">No tasks</li>`;
   return tasks.map((task) => {
     const c = getCategoryColor(task.category);
-    const p = getPriorityColor(task.priority);
-    return `<li class="kanban-task" draggable="true" data-task-id="${task.id}" data-date-key="${dateKey}" style="background:${shadeColor(c, .35)};border-color:${shadeColor(c, .75)}"><strong>${task.text}</strong><span>${task.category}</span><span class="k-pri" style="color:${p}">${emojiPriority(task.priority)}</span></li>`;
+    return `<li class="kanban-task" draggable="true" data-task-id="${task.id}" data-date-key="${dateKey}" style="background:${shadeColor(c, 0.35)};border-color:${shadeColor(c, 0.75)}"><strong>${task.text}</strong><span>${task.category}</span><span class="k-pri">${emojiPriority(task.priority)}</span></li>`;
   }).join("");
 }
 
@@ -402,7 +429,7 @@ function updateTodayTaskByColumn(todayKey, taskId, column) {
     return { ...task, completed: false, status: task.status === "Done" ? "In Progress" : task.status, priority: column };
   });
   saveTasks();
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function renderPipelineTimeline() {
@@ -433,9 +460,11 @@ function renderPipelineTimeline() {
 }
 
 function updateTaskStage(dateKey, taskId, stage) {
-  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) => (task.id === taskId ? { ...task, stage, completed: stage === "Completed" ? true : task.completed, status: stage === "Completed" ? "Done" : task.status } : task));
+  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) =>
+    task.id === taskId ? { ...task, stage, completed: stage === "Completed" ? true : task.completed, status: stage === "Completed" ? "Done" : task.status } : task
+  );
   saveTasks();
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function openDayTasksModal(dateKey) {
@@ -492,7 +521,7 @@ function addSubtaskFromInput() {
   newSubtaskInput.value = "";
   saveTasks();
   openTaskDetails(state.detailRef.dateKey, state.detailRef.taskId);
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function toggleSubtask(dateKey, taskId, subtaskId) {
@@ -502,7 +531,7 @@ function toggleSubtask(dateKey, taskId, subtaskId) {
   });
   saveTasks();
   openTaskDetails(dateKey, taskId);
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function deleteSubtask(dateKey, taskId, subtaskId) {
@@ -512,7 +541,7 @@ function deleteSubtask(dateKey, taskId, subtaskId) {
   });
   saveTasks();
   openTaskDetails(dateKey, taskId);
-  renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim());
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function renderPomodoroDisplay() {
@@ -588,40 +617,6 @@ function setViewModeUI() {
   renderFilteredTasks();
 }
 
-function taskMatchesSearch(task, q) {
-  if (!q) return true;
-  const hay = [task.text, task.category, task.description, ...(task.subtasks || []).map((s) => s.title)].join(" ").toLowerCase();
-  return hay.includes(q);
-}
-
-function renderAnalytics() {
-  const all = Object.entries(state.tasksByDate);
-  const byCategory = {};
-  let completedWeek = 0;
-  const now = new Date();
-  const weekAgo = new Date();
-  weekAgo.setDate(now.getDate() - 7);
-
-  all.forEach(([dateKey, tasks]) => {
-    const d = parseDateKey(dateKey);
-    tasks.forEach((t) => {
-      byCategory[t.category] = (byCategory[t.category] || 0) + 1;
-      if (t.completed && d >= weekAgo) completedWeek += 1;
-    });
-  });
-
-  const topCats = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  const total = Math.max(1, topCats.reduce((acc, [, n]) => acc + n, 0));
-  const allTasks = Object.values(state.tasksByDate).flat();
-  const pipelineProgress = Math.round((allTasks.filter((t) => t.completed).length / Math.max(1, allTasks.length)) * 100);
-
-  analyticsPanel.innerHTML = `
-    <small>Tasks Completed This Week: <strong>${completedWeek}</strong></small>
-    <small>Pipeline Progress: <strong>${pipelineProgress}%</strong></small>
-    <div class="analytics-bar">${topCats.map(([c, n]) => `<small>${c}</small><div><span style="width:${Math.max(8, (n / total) * 100)}%"></span></div>`).join("")}</div>
-  `;
-}
-
 function renderNotifications() {
   const todayKey = formatDateKey(new Date());
   const all = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) => tasks.map((task) => ({ ...task, dateKey })));
@@ -636,11 +631,30 @@ function renderNotifications() {
   notificationList.innerHTML = notes.length ? notes.map((n) => `<li>${n}</li>`).join("") : `<li>No notifications right now.</li>`;
 }
 
+function setActiveView(view) {
+  state.activeView = view;
+  document.querySelectorAll(".nav-item[data-view]").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
+
+  document.querySelectorAll(".view-section").forEach((section) => {
+    const allowedViews = section.dataset.section.split(" ");
+    section.classList.toggle("hidden", !allowedViews.includes(view));
+  });
+}
+
 // Events
 
-document.getElementById("prevMonth").addEventListener("click", () => { state.cursorDate.setMonth(state.cursorDate.getMonth() - 1); renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim()); });
-document.getElementById("nextMonth").addEventListener("click", () => { state.cursorDate.setMonth(state.cursorDate.getMonth() + 1); renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim()); });
-document.getElementById("todayBtn").addEventListener("click", () => { state.cursorDate = new Date(); renderCalendar(document.getElementById("searchInput").value.toLowerCase().trim()); });
+document.getElementById("prevMonth").addEventListener("click", () => {
+  state.cursorDate.setMonth(state.cursorDate.getMonth() - 1);
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
+document.getElementById("nextMonth").addEventListener("click", () => {
+  state.cursorDate.setMonth(state.cursorDate.getMonth() + 1);
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
+document.getElementById("todayBtn").addEventListener("click", () => {
+  state.cursorDate = new Date();
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
 
 document.getElementById("themeToggle").addEventListener("click", () => {
   const root = document.documentElement;
@@ -649,6 +663,21 @@ document.getElementById("themeToggle").addEventListener("click", () => {
 
 document.getElementById("notificationBtn").addEventListener("click", () => notificationCenter.classList.toggle("hidden"));
 document.getElementById("closeNotifications").addEventListener("click", () => notificationCenter.classList.add("hidden"));
+
+document.querySelectorAll(".nav-item[data-view]").forEach((btn) => {
+  btn.addEventListener("click", () => setActiveView(btn.dataset.view));
+});
+
+document.getElementById("jumpTodaySetting").addEventListener("click", () => {
+  state.cursorDate = new Date();
+  setActiveView("calendar");
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
+document.getElementById("openNotificationSetting").addEventListener("click", () => notificationCenter.classList.remove("hidden"));
+document.getElementById("clearSearchSetting").addEventListener("click", () => {
+  searchInput.value = "";
+  renderCalendar();
+});
 
 taskCategory.addEventListener("change", () => renderCategoryOptions(taskCategory.value));
 
@@ -702,7 +731,6 @@ viewMode.addEventListener("change", setViewModeUI);
 filterDate.addEventListener("change", renderFilteredTasks);
 filterWeek.addEventListener("change", renderFilteredTasks);
 
-const searchInput = document.getElementById("searchInput");
 searchInput.addEventListener("input", (e) => renderCalendar(e.target.value.toLowerCase().trim()));
 
 document.addEventListener("keydown", (e) => {
@@ -732,6 +760,7 @@ function init() {
   quickTaskPriority.value = "medium";
   renderCategoryOptions(taskCategory.value || categories[0]);
   setViewModeUI();
+  setActiveView("dashboard");
   renderCalendar();
   setInterval(checkReminders, 30000);
 }

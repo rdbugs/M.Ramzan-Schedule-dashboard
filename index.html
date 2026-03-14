@@ -9,19 +9,18 @@
   <body>
     <div class="bg-glow"></div>
     <div class="app-frame">
-      <aside class="sidebar glass-card">
+      <aside class="sidebar glass-card u-pad-md">
         <h2 class="brand">⚡ Planner</h2>
-        <nav>
-          <button class="nav-item active" title="Dashboard">🏠 <span>Dashboard</span></button>
-          <button class="nav-item" title="Calendar">🗓️ <span>Calendar</span></button>
-          <button class="nav-item" title="Pipeline">🧩 <span>Pipeline</span></button>
-          <button class="nav-item" title="Analytics">📈 <span>Analytics</span></button>
-          <button class="nav-item" title="Settings">⚙️ <span>Settings</span></button>
+        <nav class="u-col-gap-sm">
+          <button class="nav-item active" data-view="dashboard" title="Dashboard">🏠 <span>Dashboard</span></button>
+          <button class="nav-item" data-view="calendar" title="Calendar">🗓️ <span>Calendar</span></button>
+          <button class="nav-item" data-view="pipeline" title="Pipeline">🧩 <span>Pipeline</span></button>
+          <button class="nav-item" data-view="settings" title="Settings">⚙️ <span>Settings</span></button>
         </nav>
       </aside>
 
-      <div class="main-col">
-        <header class="top-bar glass-card">
+      <div class="main-col u-col-gap-md">
+        <header class="top-bar glass-card u-pad-sm">
           <div class="search-wrap">
             <input id="searchInput" type="search" placeholder="Search task / category / subtask..." />
           </div>
@@ -32,7 +31,7 @@
           </div>
         </header>
 
-        <section class="today-focus glass-card">
+        <section id="todayFocusSection" class="today-focus glass-card view-section" data-section="dashboard">
           <div class="section-head">
             <h2>Today Focus Panel</h2>
             <span id="todayDateLabel"></span>
@@ -40,7 +39,7 @@
           <div class="kanban" id="todayFocusBoard"></div>
         </section>
 
-        <section class="pipeline glass-card">
+        <section id="pipelineSection" class="pipeline glass-card view-section" data-section="dashboard pipeline">
           <div class="section-head">
             <h2>Content Pipeline Timeline</h2>
             <small>Drag cards between stages</small>
@@ -48,8 +47,18 @@
           <div id="pipelineBoard" class="pipeline-board"></div>
         </section>
 
-        <div class="workspace-grid">
-          <section class="calendar glass-card">
+        <section id="settingsSection" class="glass-card u-pad-md hidden view-section" data-section="settings">
+          <h2>Settings</h2>
+          <p class="muted mt-xs">Use quick preferences below. Your data remains in localStorage on this device.</p>
+          <div class="settings-grid mt-sm">
+            <button id="jumpTodaySetting" class="primary">Jump to Today</button>
+            <button id="openNotificationSetting">Open Notifications</button>
+            <button id="clearSearchSetting">Clear Search</button>
+          </div>
+        </section>
+
+        <div id="workspaceSection" class="workspace-grid view-section" data-section="dashboard calendar">
+          <section class="calendar glass-card u-pad-md">
             <div class="calendar-header">
               <div>
                 <p class="eyebrow">Production Planner</p>
@@ -65,30 +74,30 @@
             <div class="calendar-grid" id="calendarGrid"></div>
           </section>
 
-          <aside class="right-stack">
-            <section class="glass-card">
+          <aside id="rightStack" class="right-stack" data-section="dashboard calendar">
+            <section class="glass-card u-pad-md">
               <h2>Task Summary</h2>
-              <div class="summary-grid">
+              <div class="summary-grid mt-sm">
                 <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
                 <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
                 <article><h3>Completed</h3><p id="completedCount">0</p></article>
               </div>
             </section>
 
-            <section class="glass-card">
+            <section class="glass-card u-pad-md">
               <h3>Quick Add Task</h3>
-              <form id="quickAddForm">
+              <form id="quickAddForm" class="u-col-gap-sm mt-sm">
+                <label>Category<select id="quickTaskCategory"></select></label>
                 <label>Task<input type="text" id="quickTaskText" required /></label>
                 <label>Date<input type="date" id="quickTaskDate" required /></label>
-                <label>Category<select id="quickTaskCategory"></select></label>
                 <label>Priority<select id="quickTaskPriority"></select></label>
                 <button type="submit" class="primary">Add Task</button>
               </form>
             </section>
 
-            <section class="glass-card">
+            <section class="glass-card u-pad-md">
               <h3>Date/Week View</h3>
-              <form id="viewFilterForm">
+              <form id="viewFilterForm" class="u-col-gap-sm mt-sm">
                 <label>View mode
                   <select id="viewMode">
                     <option value="date">Date-wise</option>
@@ -99,11 +108,6 @@
                 <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
               </form>
               <ul id="filteredTasks" class="filtered-tasks"></ul>
-            </section>
-
-            <section class="glass-card analytics">
-              <h3>Analytics</h3>
-              <div id="analyticsPanel"></div>
             </section>
           </aside>
         </div>
@@ -118,7 +122,7 @@
     <div id="taskTooltip" class="task-tooltip hidden"></div>
 
     <dialog id="taskModal">
-      <form id="taskForm" method="dialog">
+      <form id="taskForm" method="dialog" class="u-col-gap-sm">
         <h3 id="taskModalTitle">Add Task</h3>
         <label>Category<select id="taskCategory"></select></label>
         <div id="categoryOptions" class="category-options hidden"></div>
