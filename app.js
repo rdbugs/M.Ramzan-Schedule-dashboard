@@ -267,6 +267,13 @@ function createTaskElement(task, dateKey) {
   li.querySelector(`[data-view="${task.id}"]`).addEventListener("click", () => openTaskDetails(dateKey, task.id));
   li.querySelector(`[data-edit="${task.id}"]`).addEventListener("click", () => openTaskModal(dateKey, task));
   li.querySelector(`[data-delete="${task.id}"]`).addEventListener("click", () => deleteTask(dateKey, task.id));
+
+  // Click anywhere on task chip to open details (except checkbox/action controls)
+  li.addEventListener("click", (event) => {
+    if (event.target.closest('input[type="checkbox"]') || event.target.closest('button')) return;
+    openTaskDetails(dateKey, task.id);
+  });
+
   return li;
 }
 

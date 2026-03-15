@@ -17,6 +17,43 @@
           <button class="nav-item" data-view="pipeline" title="Pipeline">🧩 <span>Pipeline</span></button>
           <button class="nav-item" data-view="settings" title="Settings">⚙️ <span>Settings</span></button>
         </nav>
+
+        <div class="sidebar-panels mt-sm view-section" data-section="dashboard calendar">
+          <section class="glass-card u-pad-md panel-mini">
+            <h2>Task Summary</h2>
+            <div class="summary-grid mt-sm">
+              <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
+              <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
+              <article><h3>Completed</h3><p id="completedCount">0</p></article>
+            </div>
+          </section>
+
+          <section class="glass-card u-pad-md panel-mini">
+            <h3>Quick Add Task</h3>
+            <form id="quickAddForm" class="u-col-gap-sm mt-sm">
+              <label>Category<select id="quickTaskCategory"></select></label>
+              <label>Task<input type="text" id="quickTaskText" required /></label>
+              <label>Date<input type="date" id="quickTaskDate" required /></label>
+              <label>Priority<select id="quickTaskPriority"></select></label>
+              <button type="submit" class="primary">Add Task</button>
+            </form>
+          </section>
+
+          <section class="glass-card u-pad-md panel-mini">
+            <h3>Date/Week View</h3>
+            <form id="viewFilterForm" class="u-col-gap-sm mt-sm">
+              <label>View mode
+                <select id="viewMode">
+                  <option value="date">Date-wise</option>
+                  <option value="week">Week-wise</option>
+                </select>
+              </label>
+              <label id="dateFilterWrap">Date<input type="date" id="filterDate" /></label>
+              <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
+            </form>
+            <ul id="filteredTasks" class="filtered-tasks"></ul>
+          </section>
+        </div>
       </aside>
 
       <div class="main-col u-col-gap-md">
@@ -57,60 +94,21 @@
           </div>
         </section>
 
-        <div id="workspaceSection" class="workspace-grid view-section" data-section="dashboard calendar">
-          <section class="calendar glass-card u-pad-md">
-            <div class="calendar-header">
-              <div>
-                <p class="eyebrow">Production Planner</p>
-                <h1 id="monthLabel">Month Year</h1>
-              </div>
-              <div class="nav-actions">
-                <button id="prevMonth">◀ Prev</button>
-                <button id="todayBtn" class="primary">Today</button>
-                <button id="nextMonth">Next ▶</button>
-              </div>
+        <section id="workspaceSection" class="calendar glass-card u-pad-md view-section" data-section="dashboard calendar">
+          <div class="calendar-header">
+            <div>
+              <p class="eyebrow">Production Planner</p>
+              <h1 id="monthLabel">Month Year</h1>
             </div>
-            <div class="weekday-row" id="weekdayRow"></div>
-            <div class="calendar-grid" id="calendarGrid"></div>
-          </section>
-
-          <aside id="rightStack" class="right-stack" data-section="dashboard calendar">
-            <section class="glass-card u-pad-md">
-              <h2>Task Summary</h2>
-              <div class="summary-grid mt-sm">
-                <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
-                <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
-                <article><h3>Completed</h3><p id="completedCount">0</p></article>
-              </div>
-            </section>
-
-            <section class="glass-card u-pad-md">
-              <h3>Quick Add Task</h3>
-              <form id="quickAddForm" class="u-col-gap-sm mt-sm">
-                <label>Category<select id="quickTaskCategory"></select></label>
-                <label>Task<input type="text" id="quickTaskText" required /></label>
-                <label>Date<input type="date" id="quickTaskDate" required /></label>
-                <label>Priority<select id="quickTaskPriority"></select></label>
-                <button type="submit" class="primary">Add Task</button>
-              </form>
-            </section>
-
-            <section class="glass-card u-pad-md">
-              <h3>Date/Week View</h3>
-              <form id="viewFilterForm" class="u-col-gap-sm mt-sm">
-                <label>View mode
-                  <select id="viewMode">
-                    <option value="date">Date-wise</option>
-                    <option value="week">Week-wise</option>
-                  </select>
-                </label>
-                <label id="dateFilterWrap">Date<input type="date" id="filterDate" /></label>
-                <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
-              </form>
-              <ul id="filteredTasks" class="filtered-tasks"></ul>
-            </section>
-          </aside>
-        </div>
+            <div class="nav-actions">
+              <button id="prevMonth">◀ Prev</button>
+              <button id="todayBtn" class="primary">Today</button>
+              <button id="nextMonth">Next ▶</button>
+            </div>
+          </div>
+          <div class="weekday-row" id="weekdayRow"></div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
       </div>
     </div>
 
