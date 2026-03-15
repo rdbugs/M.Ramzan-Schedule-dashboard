@@ -83,6 +83,8 @@ const dayTasksList = document.getElementById("dayTasksList");
 const taskDetailsModal = document.getElementById("taskDetailsModal");
 const taskDetailsTitle = document.getElementById("taskDetailsTitle");
 const taskDetailsBody = document.getElementById("taskDetailsBody");
+const detailEditBtn = document.getElementById("detailEditBtn");
+const detailDeleteBtn = document.getElementById("detailDeleteBtn");
 const pomodoroDisplay = document.getElementById("pomodoroDisplay");
 const subtaskList = document.getElementById("subtaskList");
 const newSubtaskInput = document.getElementById("newSubtaskInput");
@@ -247,9 +249,10 @@ function createTaskElement(task, dateKey) {
   const carryInfo = task.carriedFromDate ? `<span class="pill">↪ ${task.carriedFromDate}</span>` : "";
   const warn = isOverdue(task, dateKey) ? "⚠️" : "";
   li.innerHTML = `
-    <div class="task-main"><input type="checkbox" data-toggle="${task.id}" ${task.completed ? "checked" : ""} /><span class="task-title ${task.completed ? "done" : ""}">${warn} ${task.text}</span></div>
+    <div class="task-main"><button type="button" class="check-toggle ${task.completed ? "done" : ""}" data-toggle="${task.id}" aria-label="Toggle complete"><span class="check-icon">✓</span></button><span class="task-title ${task.completed ? "done" : ""}">${warn} ${task.text}</span></div>
     <div class="task-meta"><span class="pill" style="background:${shadeColor(categoryColor, 0.45)}">${task.category}</span><span class="pill priority-pill ${task.priority}">${emojiPriority(task.priority)}</span><span class="pill">${task.stage || "Idea"}</span>${carryInfo}<span class="sub-progress">◔ ${p.done}/${p.total || 0}</span></div>
     <div class="task-actions"><button type="button" data-view="${task.id}">View</button><button type="button" data-edit="${task.id}">Edit</button><button type="button" data-delete="${task.id}">Delete</button></div>
+    <div class="task-hover-actions"><button type="button" data-edit-icon="${task.id}" title="Edit">✏️</button><button type="button" data-delete-icon="${task.id}" title="Delete">🗑️</button></div>
   `;
 
   li.dataset.tooltip = JSON.stringify({
@@ -263,14 +266,16 @@ function createTaskElement(task, dateKey) {
   li.addEventListener("mousemove", moveTooltip);
   li.addEventListener("mouseleave", hideTooltip);
 
-  li.querySelector(`[data-toggle="${task.id}"]`).addEventListener("change", () => toggleTask(dateKey, task.id));
+  li.querySelector(`[data-toggle="${task.id}"]`).addEventListener("click", (event) => { event.stopPropagation(); toggleTask(dateKey, task.id); });
   li.querySelector(`[data-view="${task.id}"]`).addEventListener("click", () => openTaskDetails(dateKey, task.id));
   li.querySelector(`[data-edit="${task.id}"]`).addEventListener("click", () => openTaskModal(dateKey, task));
   li.querySelector(`[data-delete="${task.id}"]`).addEventListener("click", () => deleteTask(dateKey, task.id));
+  li.querySelector(`[data-edit-icon="${task.id}"]`).addEventListener("click", (event) => { event.stopPropagation(); openTaskModal(dateKey, task); });
+  li.querySelector(`[data-delete-icon="${task.id}"]`).addEventListener("click", (event) => { event.stopPropagation(); deleteTask(dateKey, task.id); });
 
   // Click anywhere on task chip to open details (except checkbox/action controls)
   li.addEventListener("click", (event) => {
-    if (event.target.closest('input[type="checkbox"]') || event.target.closest('button')) return;
+    if (event.target.closest('.check-toggle') || event.target.closest('button')) return;
     openTaskDetails(dateKey, task.id);
   });
 
@@ -425,7 +430,7 @@ function renderKanbanCards(tasks, dateKey) {
   if (!tasks.length) return `<li class="pill">No tasks</li>`;
   return tasks.map((task) => {
     const c = getCategoryColor(task.category);
-    return `<li class="kanban-task" draggable="true" data-task-id="${task.id}" data-date-key="${dateKey}" style="background:${shadeColor(c, 0.35)};border-color:${shadeColor(c, 0.75)}"><strong>${task.text}</strong><span>${task.category}</span><span class="k-pri">${emojiPriority(task.priority)}</span></li>`;
+    return `<li class="kanban-task" draggable="true" data-task-id="${task.id}" data-date-key="${dateKey}" style="background:${shadeColor(c, 0.35)};border-color:${shadeColor(c, 0.75)}"><span class="task-title ${task.completed ? "done" : ""}">${task.text}</span></li>`;
   }).join("");
 }
 
@@ -500,6 +505,11 @@ function openTaskDetails(dateKey, taskId) {
   `;
 
   renderSubtaskList(task);
+  detailEditBtn.onclick = () => openTaskModal(dateKey, task);
+  detailDeleteBtn.onclick = () => {
+    taskDetailsModal.close();
+    deleteTask(dateKey, taskId);
+  };
   taskDetailsModal.showModal();
 }
 
