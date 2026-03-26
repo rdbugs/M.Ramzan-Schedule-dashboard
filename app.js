@@ -13,6 +13,7 @@ const categories = [
   "social media publishing",
 ];
 const pipelineStages = ["Idea", "Shoot", "Edit", "Review", "Post", "Completed"];
+const pipelineCategories = new Set(["Video Shoot", "video editing"]);
 
 const categoryColors = {
   "Video Shoot": "#fef3c7",
@@ -469,7 +470,11 @@ function updateTodayTaskByColumn(todayKey, taskId, column) {
 }
 
 function renderPipelineTimeline() {
-  const allTasks = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) => tasks.map((task) => ({ ...task, dateKey })));
+  const allTasks = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) =>
+    tasks
+      .filter((task) => pipelineCategories.has(task.category))
+      .map((task) => ({ ...task, dateKey }))
+  );
   pipelineBoard.innerHTML = pipelineStages.map((stage) => {
     const stageTasks = allTasks.filter((task) => (task.stage || "Idea") === stage);
     return `<section class="pipeline-col" data-stage="${stage}"><h4>${stage} (${stageTasks.length})</h4><ul>${stageTasks.map((task) => `<li class="pipeline-chip" draggable="true" data-date-key="${task.dateKey}" data-task-id="${task.id}">${task.text}</li>`).join("") || `<li class="pill">No tasks</li>`}</ul></section>`;
@@ -496,15 +501,14 @@ function renderPipelineTimeline() {
 }
 
 function updateTaskStage(dateKey, taskId, stage) {
-  const normalizeVideoTaskText = (task) => {
-    if (task.category !== "Video Shoot" || stage !== "Edit") return task.text;
-    if (/video shoot/i.test(task.text)) return task.text.replace(/video shoot/gi, "Edit Video");
-    if (/shoot/i.test(task.text)) return task.text.replace(/shoot/gi, "edit");
-    if (/edit video/i.test(task.text)) return task.text;
-    return `Edit Video - ${task.text}`;
-  };
   state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) =>
-    task.id === taskId ? { ...task, text: normalizeVideoTaskText(task), stage, completed: stage === "Completed" ? true : task.completed, status: stage === "Completed" ? "Done" : task.status } : task
+    task.id === taskId ? {
+      ...task,
+      category: stage === "Edit" && task.category === "Video Shoot" ? "video editing" : task.category,
+      stage,
+      completed: stage === "Completed" ? true : task.completed,
+      status: stage === "Completed" ? "Done" : task.status,
+    } : task
   );
   saveTasks();
   renderCalendar(searchInput.value.toLowerCase().trim());
