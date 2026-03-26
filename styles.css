@@ -54,6 +54,7 @@ body {
 .sidebar-panels { display: grid; gap: .65rem; }
 .panel-mini h2 { font-size: 1rem; }
 .panel-mini h3 { font-size: .95rem; }
+.sidebar .panel-mini { border-radius: 12px; }
 
 .top-bar { display: flex; justify-content: space-between; align-items: center; }
 .search-wrap input { width: min(440px, 45vw); }
@@ -153,6 +154,10 @@ body {
 }
 .switch-field input:checked + .switch-slider::after { transform: translateX(19px); }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+.pipeline-head-actions { display: inline-flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.toggle-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.toggle-chip { border-radius: 999px; font-size: 0.72rem; padding: 0.28rem 0.62rem; }
+.toggle-chip.active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.22); color: #dbeafe; }
 .kanban { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 0.7rem; margin-top: 0.7rem; }
 .kanban-column { border: 1px solid var(--line); border-radius: 12px; padding: 0.45rem; min-height: 110px; }
 .kanban-column ul { margin: 0.4rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; min-height: 60px; }
@@ -169,6 +174,12 @@ body {
 .pipeline-chip { border: 1px solid var(--line); border-radius: 8px; padding: 0.25rem 0.35rem; font-size: 0.72rem; }
 
 .settings-grid { display: grid; gap: 0.5rem; grid-template-columns: repeat(3, minmax(110px, 1fr)); }
+.settings-stack { display: grid; gap: 0.75rem; }
+.setting-card { border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem; background: rgba(255, 255, 255, 0.03); }
+.inline-form { display: grid; grid-template-columns: 1fr auto; gap: 0.45rem; }
+.group-list { display: grid; gap: 0.5rem; }
+.group-card { border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem; display: grid; gap: 0.4rem; }
+.group-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 
 h1, h2, h3, h4, p { margin: 0; }
 button, input, select, textarea { font: inherit; color: var(--text); }
@@ -239,4 +250,5 @@ dialog { border: none; border-radius: 14px; max-width: 640px; width: 94%; backgr
   .focus-head-actions { width: 100%; justify-content: space-between; }
   .section-head { align-items: flex-start; flex-direction: column; }
   .kanban { grid-template-columns: 1fr; }
+  .inline-form { grid-template-columns: 1fr; }
 }

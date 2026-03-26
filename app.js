@@ -1,19 +1,19 @@
 const STORAGE_KEY = "content-planner-tasks-v3";
 const CARRYOVER_KEY = "content-planner-carryover-last-date";
+const PROFILE_KEY = "content-planner-profile-v1";
 
-const categories = [
-  "Video Shoot",
-  "video editing",
-  "Post Designing",
-  "Thumbnail Designing",
-  "Leads Data entry",
-  "COD order Processing",
-  "Website Development",
-  "In between tasks",
-  "social media publishing",
-];
+const defaultProfileConfig = {
+  name: "",
+  role: "Social Media Manager",
+  groups: [
+    { name: "Videography / Multimedia", categories: ["Video Shoot", "video editing"] },
+    { name: "Graphic Design", categories: ["Post Designing", "Thumbnail Designing", "Print Media Design"] },
+    { name: "Marketing & Operations", categories: ["social media publishing", "Leads Data entry", "COD order Processing"] },
+    { name: "Web & Tech", categories: ["Website Development"] },
+    { name: "General", categories: ["In between tasks", "Other Tasks"] },
+  ],
+};
 const pipelineStages = ["Idea", "Shoot", "Edit", "Review", "Post", "Completed"];
-const pipelineCategories = new Set(["Video Shoot", "video editing"]);
 
 const categoryColors = {
   "Video Shoot": "#fef3c7",
@@ -48,6 +48,8 @@ const state = {
   pomodoroTimer: null,
   pomodoroSecondsLeft: 25 * 60,
   activeView: "dashboard",
+  selectedPipelineGroup: "all",
+  profileConfig: loadProfileConfig(),
 };
 
 const monthLabel = document.getElementById("monthLabel");
@@ -102,6 +104,16 @@ const notificationCenter = document.getElementById("notificationCenter");
 const notificationList = document.getElementById("notificationList");
 const searchInput = document.getElementById("searchInput");
 const todayFocusToggle = document.getElementById("todayFocusToggle");
+const pipelineGroupFilters = document.getElementById("pipelineGroupFilters");
+const profileForm = document.getElementById("profileForm");
+const profileName = document.getElementById("profileName");
+const profileRole = document.getElementById("profileRole");
+const addGroupForm = document.getElementById("addGroupForm");
+const addCategoryForm = document.getElementById("addCategoryForm");
+const newGroupName = document.getElementById("newGroupName");
+const parentGroupSelect = document.getElementById("parentGroupSelect");
+const newCategoryName = document.getElementById("newCategoryName");
+const groupList = document.getElementById("groupList");
 
 let modalDraftSubtasks = [];
 
@@ -111,6 +123,21 @@ function loadTasks() {
   } catch {
     return {};
   }
+}
+function loadProfileConfig() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    if (!parsed?.groups?.length) return JSON.parse(JSON.stringify(defaultProfileConfig));
+    return parsed;
+  } catch {
+    return JSON.parse(JSON.stringify(defaultProfileConfig));
+  }
+}
+function saveProfileConfig() {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(state.profileConfig));
+}
+function allCategories() {
+  return state.profileConfig.groups.flatMap((group) => group.categories);
 }
 function saveTasks() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasksByDate));
@@ -143,7 +170,7 @@ function emojiPriority(priority) {
 }
 
 function setupSelects() {
-  const categoryOptionsHtml = categories.map((c) => `<option value="${c}">${c}</option>`).join("");
+  const categoryOptionsHtml = allCategories().map((c) => `<option value="${c}">${c}</option>`).join("");
   const priorityOptions = priorities.map((p) => `<option value="${p.value}">${p.label}</option>`).join("");
   [taskCategory, quickTaskCategory].forEach((select) => (select.innerHTML = categoryOptionsHtml));
   [taskPriority, quickTaskPriority].forEach((select) => (select.innerHTML = priorityOptions));
@@ -324,7 +351,7 @@ function openTaskModal(dateKey, task = null) {
   state.editingTaskId = task?.id || null;
   taskModalTitle.textContent = task ? "Edit Task" : "Add Task";
 
-  taskCategory.value = task?.category || categories[0];
+  taskCategory.value = task?.category || allCategories()[0];
   renderCategoryOptions(taskCategory.value, task?.categoryChecklist || []);
   taskText.value = task?.text || "";
   taskDescription.value = task?.description || "";
@@ -473,9 +500,13 @@ function updateTodayTaskByColumn(todayKey, taskId, column) {
 }
 
 function renderPipelineTimeline() {
+  const selectedGroup = state.selectedPipelineGroup;
+  const allowedCategories = selectedGroup === "all"
+    ? null
+    : new Set((state.profileConfig.groups.find((group) => group.name === selectedGroup)?.categories || []));
   const allTasks = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) =>
     tasks
-      .filter((task) => pipelineCategories.has(task.category))
+      .filter((task) => !allowedCategories || allowedCategories.has(task.category))
       .map((task) => ({ ...task, dateKey }))
   );
   pipelineBoard.innerHTML = pipelineStages.map((stage) => {
@@ -515,6 +546,33 @@ function updateTaskStage(dateKey, taskId, stage) {
   );
   saveTasks();
   renderCalendar(searchInput.value.toLowerCase().trim());
+}
+
+function renderPipelineGroupFilters() {
+  pipelineGroupFilters.innerHTML = [
+    `<button type="button" class="toggle-chip ${state.selectedPipelineGroup === "all" ? "active" : ""}" data-pipe-group="all">All</button>`,
+    ...state.profileConfig.groups.map((group) => `<button type="button" class="toggle-chip ${state.selectedPipelineGroup === group.name ? "active" : ""}" data-pipe-group="${group.name}">${group.name}</button>`),
+  ].join("");
+
+  pipelineGroupFilters.querySelectorAll("[data-pipe-group]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selectedPipelineGroup = btn.dataset.pipeGroup;
+      renderPipelineGroupFilters();
+      renderPipelineTimeline();
+    });
+  });
+}
+
+function renderSettingsProfile() {
+  profileName.value = state.profileConfig.name || "";
+  profileRole.value = state.profileConfig.role || "Social Media Manager";
+  parentGroupSelect.innerHTML = state.profileConfig.groups.map((group) => `<option value="${group.name}">${group.name}</option>`).join("");
+  groupList.innerHTML = state.profileConfig.groups.map((group) => `
+    <article class="group-card">
+      <h4>${group.name}</h4>
+      <div class="group-tags">${group.categories.map((category) => `<span class="pill">${category}</span>`).join("")}</div>
+    </article>
+  `).join("");
 }
 
 function openDayTasksModal(dateKey) {
@@ -779,6 +837,42 @@ document.getElementById("clearSearchSetting").addEventListener("click", () => {
   searchInput.value = "";
   renderCalendar();
 });
+profileForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  state.profileConfig.name = profileName.value.trim();
+  state.profileConfig.role = profileRole.value;
+  saveProfileConfig();
+});
+addGroupForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const groupName = newGroupName.value.trim();
+  if (!groupName) return;
+  if (state.profileConfig.groups.some((group) => group.name.toLowerCase() === groupName.toLowerCase())) return;
+  state.profileConfig.groups.push({ name: groupName, categories: [] });
+  newGroupName.value = "";
+  saveProfileConfig();
+  setupSelects();
+  renderSettingsProfile();
+  renderPipelineGroupFilters();
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
+addCategoryForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const parentName = parentGroupSelect.value;
+  const categoryName = newCategoryName.value.trim();
+  if (!parentName || !categoryName) return;
+  const parent = state.profileConfig.groups.find((group) => group.name === parentName);
+  if (!parent) return;
+  if (!parent.categories.some((category) => category.toLowerCase() === categoryName.toLowerCase())) {
+    parent.categories.push(categoryName);
+  }
+  newCategoryName.value = "";
+  saveProfileConfig();
+  setupSelects();
+  renderSettingsProfile();
+  renderPipelineGroupFilters();
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
 
 taskCategory.addEventListener("change", () => renderCategoryOptions(taskCategory.value));
 
@@ -805,7 +899,7 @@ quickAddForm.addEventListener("submit", (event) => {
   });
   quickAddForm.reset();
   quickTaskDate.value = formatDateKey(new Date());
-  quickTaskCategory.value = categories[0];
+  quickTaskCategory.value = allCategories()[0];
   quickTaskPriority.value = "medium";
 });
 
@@ -865,10 +959,12 @@ function init() {
   renderWeekdays();
   quickTaskDate.value = formatDateKey(new Date());
   filterDate.value = formatDateKey(new Date());
-  quickTaskCategory.value = categories[0];
+  quickTaskCategory.value = allCategories()[0];
   quickTaskPriority.value = "medium";
   todayFocusToggle.checked = false;
-  renderCategoryOptions(taskCategory.value || categories[0]);
+  renderCategoryOptions(taskCategory.value || allCategories()[0]);
+  renderSettingsProfile();
+  renderPipelineGroupFilters();
   setViewModeUI();
   setActiveView("dashboard");
   renderCalendar();

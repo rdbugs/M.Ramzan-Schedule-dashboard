@@ -18,7 +18,7 @@
           <button class="nav-item" data-view="settings" title="Settings">⚙️ <span>Settings</span></button>
         </nav>
 
-        <div class="sidebar-panels mt-sm view-section" data-section="dashboard calendar">
+        <div class="sidebar-panels mt-sm view-section" data-section="dashboard calendar pipeline settings">
           <section class="glass-card u-pad-md panel-mini">
             <h2>Task Summary</h2>
             <div class="summary-grid mt-sm">
@@ -88,18 +88,58 @@
         <section id="pipelineSection" class="pipeline glass-card view-section" data-section="dashboard pipeline">
           <div class="section-head">
             <h2>Content Pipeline Timeline</h2>
-            <small>Drag cards between stages</small>
+            <div class="pipeline-head-actions">
+              <small>Drag cards between stages</small>
+              <div id="pipelineGroupFilters" class="toggle-row"></div>
+            </div>
           </div>
           <div id="pipelineBoard" class="pipeline-board"></div>
         </section>
 
         <section id="settingsSection" class="glass-card u-pad-md hidden view-section" data-section="settings">
-          <h2>Settings</h2>
-          <p class="muted mt-xs">Use quick preferences below. Your data remains in localStorage on this device.</p>
-          <div class="settings-grid mt-sm">
-            <button id="jumpTodaySetting" class="primary">Jump to Today</button>
-            <button id="openNotificationSetting">Open Notifications</button>
-            <button id="clearSearchSetting">Clear Search</button>
+          <h2>Profile & Workspace Settings</h2>
+          <p class="muted mt-xs">Build your planning profile, category structure, and workflow options. All changes are saved locally on your device.</p>
+          <div class="settings-stack mt-sm">
+            <section class="setting-card">
+              <h3>Planner Profile</h3>
+              <form id="profileForm" class="u-col-gap-sm mt-xs">
+                <label>Name <input id="profileName" type="text" placeholder="Your name" /></label>
+                <label>Role
+                  <select id="profileRole">
+                    <option value="Social Media Manager">Social Media Manager</option>
+                    <option value="Graphic Designer">Graphic Designer</option>
+                    <option value="Creative Head">Creative Head</option>
+                    <option value="Video Editor">Video Editor</option>
+                    <option value="Operations Manager">Operations Manager</option>
+                    <option value="Custom">Custom</option>
+                  </select>
+                </label>
+                <button type="submit" class="primary">Save Profile</button>
+              </form>
+            </section>
+
+            <section class="setting-card">
+              <h3>Category Groups</h3>
+              <form id="addGroupForm" class="inline-form mt-xs">
+                <input id="newGroupName" type="text" placeholder="Add parent category (e.g. Marketing)" />
+                <button type="submit">Add Group</button>
+              </form>
+              <form id="addCategoryForm" class="inline-form mt-xs">
+                <select id="parentGroupSelect"></select>
+                <input id="newCategoryName" type="text" placeholder="Add category inside selected group" />
+                <button type="submit">Add Category</button>
+              </form>
+              <div id="groupList" class="group-list mt-sm"></div>
+            </section>
+
+            <section class="setting-card">
+              <h3>Quick Actions</h3>
+              <div class="settings-grid mt-xs">
+                <button id="jumpTodaySetting" class="primary">Jump to Today</button>
+                <button id="openNotificationSetting">Open Notifications</button>
+                <button id="clearSearchSetting">Clear Search</button>
+              </div>
+            </section>
           </div>
         </section>
 
