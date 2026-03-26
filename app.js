@@ -16,15 +16,17 @@ const defaultProfileConfig = {
 const pipelineStages = ["Idea", "Shoot", "Edit", "Review", "Post", "Completed"];
 
 const categoryColors = {
-  "Video Shoot": "#fef3c7",
-  "video editing": "#ddd6fe",
-  "Post Designing": "#dbeafe",
-  "Thumbnail Designing": "#fecdd3",
-  "Leads Data entry": "#cffafe",
-  "COD order Processing": "#fde68a",
-  "Website Development": "#dcfce7",
-  "In between tasks": "#e5e7eb",
-  "social media publishing": "#fee2e2",
+  "Video Shoot": "#f43f5e",
+  "video editing": "#8b5cf6",
+  "Post Designing": "#3b82f6",
+  "Thumbnail Designing": "#ec4899",
+  "Print Media Design": "#f97316",
+  "Leads Data entry": "#06b6d4",
+  "COD order Processing": "#eab308",
+  "Website Development": "#22c55e",
+  "In between tasks": "#94a3b8",
+  "Other Tasks": "#64748b",
+  "social media publishing": "#ef4444",
 };
 
 const categoryChecklistTemplates = {
@@ -103,6 +105,8 @@ const filteredTasks = document.getElementById("filteredTasks");
 const notificationCenter = document.getElementById("notificationCenter");
 const notificationList = document.getElementById("notificationList");
 const searchInput = document.getElementById("searchInput");
+const topSearchWrap = document.getElementById("topSearchWrap");
+const profileChip = document.getElementById("profileChip");
 const todayFocusToggle = document.getElementById("todayFocusToggle");
 const pipelineGroupFilters = document.getElementById("pipelineGroupFilters");
 const profileForm = document.getElementById("profileForm");
@@ -156,7 +160,10 @@ function safeUUID() {
   return crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 function getCategoryColor(category) {
-  return categoryColors[category] || "#e2e8f0";
+  if (categoryColors[category]) return categoryColors[category];
+  const palette = ["#60a5fa", "#f472b6", "#f59e0b", "#22d3ee", "#a78bfa", "#34d399"];
+  const idx = Math.abs([...category].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % palette.length;
+  return palette[idx];
 }
 function shadeColor(hex, opacity = 0.18) {
   const value = hex.replace("#", "");
@@ -399,7 +406,12 @@ function toggleTask(dateKey, taskId) {
   state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) => {
     if (task.id !== taskId) return task;
     const completed = !task.completed;
-    return { ...task, completed, status: completed ? "Done" : task.status === "Done" ? "In Progress" : task.status };
+    return {
+      ...task,
+      completed,
+      stage: completed ? "Completed" : task.stage === "Completed" ? "Idea" : task.stage,
+      status: completed ? "Done" : task.status === "Done" ? "In Progress" : task.status,
+    };
   });
   saveTasks();
   renderCalendar(searchInput.value.toLowerCase().trim());
@@ -507,10 +519,10 @@ function renderPipelineTimeline() {
   const allTasks = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) =>
     tasks
       .filter((task) => !allowedCategories || allowedCategories.has(task.category))
-      .map((task) => ({ ...task, dateKey }))
+      .map((task) => ({ ...task, dateKey, effectiveStage: task.completed ? "Completed" : (task.stage || "Idea") }))
   );
   pipelineBoard.innerHTML = pipelineStages.map((stage) => {
-    const stageTasks = allTasks.filter((task) => (task.stage || "Idea") === stage);
+    const stageTasks = allTasks.filter((task) => task.effectiveStage === stage);
     return `<section class="pipeline-col" data-stage="${stage}"><h4>${stage} (${stageTasks.length})</h4><ul>${stageTasks.map((task) => `<li class="pipeline-chip" draggable="true" data-date-key="${task.dateKey}" data-task-id="${task.id}">${task.text}</li>`).join("") || `<li class="pill">No tasks</li>`}</ul></section>`;
   }).join("");
 
@@ -566,6 +578,7 @@ function renderPipelineGroupFilters() {
 function renderSettingsProfile() {
   profileName.value = state.profileConfig.name || "";
   profileRole.value = state.profileConfig.role || "Social Media Manager";
+  profileChip.textContent = `${state.profileConfig.name || "Guest"} • ${state.profileConfig.role || "Social Media Manager"}`;
   parentGroupSelect.innerHTML = state.profileConfig.groups.map((group) => `<option value="${group.name}">${group.name}</option>`).join("");
   groupList.innerHTML = state.profileConfig.groups.map((group) => `
     <article class="group-card">
@@ -793,6 +806,7 @@ function renderNotifications() {
 function setActiveView(view) {
   state.activeView = view;
   document.querySelectorAll(".nav-item[data-view]").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
+  topSearchWrap.classList.toggle("hidden", view === "settings");
 
   document.querySelectorAll(".view-section").forEach((section) => {
     const allowedViews = section.dataset.section.split(" ");
@@ -842,6 +856,7 @@ profileForm.addEventListener("submit", (event) => {
   state.profileConfig.name = profileName.value.trim();
   state.profileConfig.role = profileRole.value;
   saveProfileConfig();
+  renderSettingsProfile();
 });
 addGroupForm.addEventListener("submit", (event) => {
   event.preventDefault();
