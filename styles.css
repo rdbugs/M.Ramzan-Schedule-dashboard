@@ -63,7 +63,7 @@ body {
 .profile-chip { border: 1px solid var(--line); border-radius: 999px; padding: 0.28rem 0.58rem; font-size: 0.74rem; color: var(--muted); background: rgba(255,255,255,0.08); white-space: nowrap; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(59, 130, 246, 0.35); font-size: 0.8rem; font-weight: 700; }
 
-.calendar-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.75rem; min-height: 58px; }
 .calendar-header h1 { font-size: 1.25rem; }
 .eyebrow { margin: 0; color: var(--muted); font-size: 0.85rem; }
 .nav-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -156,9 +156,9 @@ body {
   border-color: rgba(56, 189, 248, 0.8);
 }
 .switch-field input:checked + .switch-slider::after { transform: translateX(19px); }
-.section-head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+.section-head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; min-height: 58px; }
 .section-head h2 { font-size: 1.15rem; }
-.pipeline-head-actions { display: inline-flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.pipeline-head-actions { display: inline-flex; gap: 0.6rem; align-items: center; flex-wrap: nowrap; justify-content: flex-end; }
 .toggle-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .toggle-chip { border-radius: 999px; font-size: 0.72rem; padding: 0.28rem 0.62rem; }
 .toggle-chip.active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.22); color: #dbeafe; }
@@ -253,6 +253,8 @@ dialog { border: none; border-radius: 14px; max-width: 640px; width: 94%; backgr
   .calendar-grid { grid-template-columns: 1fr; }
   .focus-head-actions { width: 100%; justify-content: space-between; }
   .section-head { align-items: flex-start; flex-direction: column; }
+  .section-head, .calendar-header { min-height: auto; }
+  .pipeline-head-actions { flex-wrap: wrap; }
   .kanban { grid-template-columns: 1fr; }
   .inline-form { grid-template-columns: 1fr; }
 }
