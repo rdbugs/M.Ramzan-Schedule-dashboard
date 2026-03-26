@@ -105,6 +105,7 @@ const filteredTasks = document.getElementById("filteredTasks");
 const notificationCenter = document.getElementById("notificationCenter");
 const notificationList = document.getElementById("notificationList");
 const searchInput = document.getElementById("searchInput");
+const topBar = document.getElementById("topBar");
 const topSearchWrap = document.getElementById("topSearchWrap");
 const profileChip = document.getElementById("profileChip");
 const todayFocusToggle = document.getElementById("todayFocusToggle");
@@ -806,7 +807,8 @@ function renderNotifications() {
 function setActiveView(view) {
   state.activeView = view;
   document.querySelectorAll(".nav-item[data-view]").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
-  topSearchWrap.classList.toggle("hidden", view === "settings");
+  topBar.classList.toggle("hidden", view === "settings");
+  topSearchWrap.classList.remove("hidden");
 
   document.querySelectorAll(".view-section").forEach((section) => {
     const allowedViews = section.dataset.section.split(" ");
