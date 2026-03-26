@@ -24,6 +24,7 @@
             <div class="summary-grid mt-sm">
               <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
               <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
+              <article><h3>All Pending</h3><p id="pendingCount">0</p></article>
               <article><h3>Completed</h3><p id="completedCount">0</p></article>
             </div>
           </section>
@@ -71,7 +72,13 @@
         <section id="todayFocusSection" class="today-focus glass-card view-section" data-section="dashboard">
           <div class="section-head">
             <h2>Today Focus Panel</h2>
-            <span id="todayDateLabel"></span>
+            <div class="focus-head-actions">
+              <select id="todayFocusMode">
+                <option value="today">Today</option>
+                <option value="month">This Month</option>
+              </select>
+              <span id="todayDateLabel"></span>
+            </div>
           </div>
           <div class="kanban" id="todayFocusBoard"></div>
         </section>
@@ -147,7 +154,12 @@
         <label>Reminder<input type="datetime-local" id="taskReminder" /></label>
         <label>Pomodoro (minutes)<input type="number" min="1" max="120" id="taskPomodoro" value="25" /></label>
         <label>Priority<select id="taskPriority"></select></label>
-        <label>Subtasks (one per line)<textarea id="taskSubtasks" rows="3"></textarea></label>
+        <label>Subtasks</label>
+        <div class="subtask-input-row modal-subtask-row">
+          <button id="addModalSubtaskBtn" type="button" title="Add subtask">＋</button>
+          <input id="modalSubtaskInput" type="text" placeholder="Add subtask..." />
+        </div>
+        <ul id="modalSubtaskList" class="subtask-list"></ul>
         <div class="modal-actions">
           <button type="button" id="cancelTaskBtn">Cancel</button>
           <button type="submit" class="primary">Save</button>
