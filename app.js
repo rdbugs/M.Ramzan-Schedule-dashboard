@@ -101,7 +101,7 @@ const filteredTasks = document.getElementById("filteredTasks");
 const notificationCenter = document.getElementById("notificationCenter");
 const notificationList = document.getElementById("notificationList");
 const searchInput = document.getElementById("searchInput");
-const todayFocusMode = document.getElementById("todayFocusMode");
+const todayFocusToggle = document.getElementById("todayFocusToggle");
 
 let modalDraftSubtasks = [];
 
@@ -154,21 +154,27 @@ function renderWeekdays() {
 }
 
 function carryForwardIncompleteTasks() {
-  const todayKey = formatDateKey(new Date());
-  if (localStorage.getItem(CARRYOVER_KEY) === todayKey) return;
+  const today = new Date();
+  const todayKey = formatDateKey(today);
+  const lastProcessedKey = localStorage.getItem(CARRYOVER_KEY);
+  let cursor = lastProcessedKey ? parseDateKey(lastProcessedKey) : new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
 
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  const yesterdayKey = formatDateKey(y);
-  const prevTasks = state.tasksByDate[yesterdayKey] || [];
-  const todayTasks = state.tasksByDate[todayKey] || [];
+  while (formatDateKey(cursor) < todayKey) {
+    const fromKey = formatDateKey(cursor);
+    const toDate = new Date(cursor);
+    toDate.setDate(toDate.getDate() + 1);
+    const toKey = formatDateKey(toDate);
 
-  prevTasks.filter((task) => !task.completed).forEach((task) => {
-    const exists = todayTasks.some((t) => t.carriedFromDate === yesterdayKey && t.carriedFromTaskId === task.id);
-    if (!exists) todayTasks.push({ ...task, id: safeUUID(), carriedFromDate: yesterdayKey, carriedFromTaskId: task.id });
-  });
+    const prevTasks = state.tasksByDate[fromKey] || [];
+    const nextDayTasks = state.tasksByDate[toKey] || [];
+    prevTasks.filter((task) => !task.completed).forEach((task) => {
+      const exists = nextDayTasks.some((t) => t.carriedFromDate === fromKey && t.carriedFromTaskId === task.id);
+      if (!exists) nextDayTasks.push({ ...task, id: safeUUID(), carriedFromDate: fromKey, carriedFromTaskId: task.id });
+    });
+    state.tasksByDate[toKey] = nextDayTasks;
+    cursor = toDate;
+  }
 
-  state.tasksByDate[todayKey] = todayTasks;
   localStorage.setItem(CARRYOVER_KEY, todayKey);
   saveTasks();
 }
@@ -386,10 +392,7 @@ function moveTask(fromDateKey, toDateKey, taskId) {
 function renderSummary() {
   const all = Object.values(state.tasksByDate).flat();
   const todayKey = formatDateKey(new Date());
-  const todayDate = parseDateKey(todayKey);
-  const allPending = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) =>
-    tasks.filter((task) => !task.completed && parseDateKey(dateKey) <= todayDate)
-  );
+  const allPending = all.filter((task) => !task.completed);
   document.getElementById("dueTodayCount").textContent = (state.tasksByDate[todayKey] || []).length;
   document.getElementById("highPriorityCount").textContent = all.filter((t) => t.priority === "high" && !t.completed).length;
   document.getElementById("pendingCount").textContent = allPending.length;
@@ -399,7 +402,7 @@ function renderSummary() {
 function renderTodayFocusPanel() {
   const today = new Date();
   const todayKey = formatDateKey(today);
-  const mode = todayFocusMode.value || "today";
+  const mode = todayFocusToggle.checked ? "month" : "today";
   let tasksWithDates = [];
 
   if (mode === "month") {
@@ -454,7 +457,7 @@ function renderKanbanCards(tasks) {
   if (!tasks.length) return `<li class="pill">No tasks</li>`;
   return tasks.map((task) => {
     const c = getCategoryColor(task.category);
-    const dateTag = todayFocusMode.value === "month" ? `<small>${task.dateKey}</small>` : "";
+    const dateTag = todayFocusToggle.checked ? `<small>${task.dateKey}</small>` : "";
     return `<li class="kanban-task" draggable="true" data-task-id="${task.id}" data-date-key="${task.dateKey}" style="background:${shadeColor(c, 0.35)};border-color:${shadeColor(c, 0.75)}"><span class="task-title ${task.completed ? "done" : ""}">${task.text}</span>${dateTag}</li>`;
   }).join("");
 }
@@ -835,7 +838,7 @@ modalSubtaskInput.addEventListener("keydown", (e) => {
 viewMode.addEventListener("change", setViewModeUI);
 filterDate.addEventListener("change", renderFilteredTasks);
 filterWeek.addEventListener("change", renderFilteredTasks);
-todayFocusMode.addEventListener("change", renderTodayFocusPanel);
+todayFocusToggle.addEventListener("change", renderTodayFocusPanel);
 
 searchInput.addEventListener("input", (e) => renderCalendar(e.target.value.toLowerCase().trim()));
 
@@ -864,7 +867,7 @@ function init() {
   filterDate.value = formatDateKey(new Date());
   quickTaskCategory.value = categories[0];
   quickTaskPriority.value = "medium";
-  todayFocusMode.value = "today";
+  todayFocusToggle.checked = false;
   renderCategoryOptions(taskCategory.value || categories[0]);
   setViewModeUI();
   setActiveView("dashboard");

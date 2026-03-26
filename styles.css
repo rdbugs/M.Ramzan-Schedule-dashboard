@@ -124,7 +124,34 @@ body {
 }
 
 .today-focus { padding: 1rem; }
-.focus-head-actions { display: flex; align-items: center; gap: 0.5rem; }
+.focus-head-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.switch-field { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; color: var(--muted); }
+.switch-field input { position: absolute; opacity: 0; pointer-events: none; }
+.switch-slider {
+  width: 42px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(148, 163, 184, 0.25);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 3px;
+  transition: background .2s ease, border-color .2s ease;
+}
+.switch-slider::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transform: translateX(0);
+  transition: transform .2s ease;
+}
+.switch-field input:checked + .switch-slider {
+  background: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.8);
+}
+.switch-field input:checked + .switch-slider::after { transform: translateX(19px); }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
 .kanban { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 0.7rem; margin-top: 0.7rem; }
 .kanban-column { border: 1px solid var(--line); border-radius: 12px; padding: 0.45rem; min-height: 110px; }
@@ -149,8 +176,24 @@ button { border: 1px solid var(--line); border-radius: 10px; background: rgba(25
 button.primary { background: rgba(37, 99, 235, 0.88); border-color: rgba(59, 130, 246, 0.9); color: #fff; }
 label { display: grid; gap: 0.2rem; font-size: 0.82rem; }
 input, select, textarea { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line); border-radius: 8px; padding: 0.38rem; }
-
-select, option { color: #0f172a; background: #f8fafc; }
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 2px),
+    calc(100% - 10px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 1.7rem;
+}
+option {
+  color: var(--text);
+  background: #0f172a;
+}
+:root[data-theme="light"] option { background: #ffffff; color: #0f172a; }
 
 .summary-grid { display: grid; gap: 0.4rem; }
 .summary-grid article { border: 1px solid var(--line); border-radius: 10px; padding: 0.4rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }

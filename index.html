@@ -73,10 +73,12 @@
           <div class="section-head">
             <h2>Today Focus Panel</h2>
             <div class="focus-head-actions">
-              <select id="todayFocusMode">
-                <option value="today">Today</option>
-                <option value="month">This Month</option>
-              </select>
+              <label class="switch-field" for="todayFocusToggle" title="Toggle between today and this month">
+                <span>Today</span>
+                <input id="todayFocusToggle" type="checkbox" />
+                <span class="switch-slider" aria-hidden="true"></span>
+                <span>Month</span>
+              </label>
               <span id="todayDateLabel"></span>
             </div>
           </div>
