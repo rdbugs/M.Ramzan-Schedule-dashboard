@@ -202,10 +202,14 @@ function carryForwardIncompleteTasks() {
 
     const prevTasks = state.tasksByDate[fromKey] || [];
     const nextDayTasks = state.tasksByDate[toKey] || [];
+
     prevTasks.filter((task) => !task.completed).forEach((task) => {
       const exists = nextDayTasks.some((t) => t.carriedFromDate === fromKey && t.carriedFromTaskId === task.id);
       if (!exists) nextDayTasks.push({ ...task, id: safeUUID(), carriedFromDate: fromKey, carriedFromTaskId: task.id });
     });
+
+    // Move behavior: once incomplete tasks are carried forward, remove them from the previous day
+    state.tasksByDate[fromKey] = prevTasks.filter((task) => task.completed);
     state.tasksByDate[toKey] = nextDayTasks;
     cursor = toDate;
   }
