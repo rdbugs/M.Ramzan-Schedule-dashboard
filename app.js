@@ -91,6 +91,7 @@ const taskDetailsModal = document.getElementById("taskDetailsModal");
 const taskDetailsTitle = document.getElementById("taskDetailsTitle");
 const taskDetailsBody = document.getElementById("taskDetailsBody");
 const detailEditBtn = document.getElementById("detailEditBtn");
+const detailCancelBtn = document.getElementById("detailCancelBtn");
 const detailDeleteBtn = document.getElementById("detailDeleteBtn");
 const pomodoroDisplay = document.getElementById("pomodoroDisplay");
 const subtaskList = document.getElementById("subtaskList");
@@ -128,6 +129,9 @@ const deleteGroupBtn = document.getElementById("deleteGroupBtn");
 const groupCategoryInput = document.getElementById("groupCategoryInput");
 const addGroupCategoryBtn = document.getElementById("addGroupCategoryBtn");
 const groupCategoryList = document.getElementById("groupCategoryList");
+const pipelineMoreModal = document.getElementById("pipelineMoreModal");
+const pipelineMoreTitle = document.getElementById("pipelineMoreTitle");
+const pipelineMoreList = document.getElementById("pipelineMoreList");
 
 let modalDraftSubtasks = [];
 
@@ -546,7 +550,11 @@ function renderPipelineTimeline() {
   );
   pipelineBoard.innerHTML = pipelineStages.map((stage) => {
     const stageTasks = allTasks.filter((task) => task.effectiveStage === stage);
-    return `<section class="pipeline-col" data-stage="${stage}"><h4>${stage} (${stageTasks.length})</h4><ul>${stageTasks.map((task) => `<li class="pipeline-chip" draggable="true" data-date-key="${task.dateKey}" data-task-id="${task.id}">${task.text}</li>`).join("") || `<li class="pill">No tasks</li>`}</ul></section>`;
+    const visibleTasks = stageTasks.slice(0, 7);
+    const hasMore = stageTasks.length > 7;
+    const visibleHtml = visibleTasks.map((task) => `<li class="pipeline-chip" draggable="true" data-date-key="${task.dateKey}" data-task-id="${task.id}">${task.text}</li>`).join("");
+    const moreHtml = hasMore ? `<li class="pipeline-more"><button type="button" data-show-more="${stage}">Show more (${stageTasks.length - 7}+)</button></li>` : "";
+    return `<section class="pipeline-col" data-stage="${stage}"><h4>${stage} (${stageTasks.length})</h4><ul>${visibleHtml || `<li class="pill">No tasks</li>`}${moreHtml}</ul></section>`;
   }).join("");
 
   pipelineBoard.querySelectorAll(".pipeline-chip").forEach((chip) => {
@@ -567,6 +575,27 @@ function renderPipelineTimeline() {
       updateTaskStage(payload.dateKey, payload.taskId, col.dataset.stage);
     });
   });
+  pipelineBoard.querySelectorAll("[data-show-more]").forEach((btn) => {
+    btn.addEventListener("click", () => openPipelineMoreModal(btn.dataset.showMore));
+  });
+}
+
+function openPipelineMoreModal(stage) {
+  const selectedGroup = state.selectedPipelineGroup;
+  const allowedCategories = selectedGroup === "all"
+    ? null
+    : new Set((state.profileConfig.groups.find((group) => group.name === selectedGroup)?.categories || []));
+  const stageTasks = Object.entries(state.tasksByDate).flatMap(([dateKey, tasks]) =>
+    tasks
+      .filter((task) => !allowedCategories || allowedCategories.has(task.category))
+      .map((task) => ({ ...task, dateKey, effectiveStage: task.completed ? "Completed" : (task.stage || "Idea") }))
+      .filter((task) => task.effectiveStage === stage)
+  );
+  pipelineMoreTitle.textContent = `${stage} Tasks (${stageTasks.length})`;
+  pipelineMoreList.innerHTML = stageTasks.length
+    ? stageTasks.map((task) => `<li><strong>${task.text}</strong><br/><small>${task.dateKey} • ${task.category} • ${task.status || "Not Started"}</small></li>`).join("")
+    : "<li>No tasks</li>";
+  pipelineMoreModal.showModal();
 }
 
 function updateTaskStage(dateKey, taskId, stage) {
@@ -718,11 +747,21 @@ function openTaskDetails(dateKey, taskId) {
 
   renderSubtaskList(task);
   detailEditBtn.onclick = () => openTaskModal(dateKey, task);
+  detailCancelBtn.onclick = () => markTaskCancelled(dateKey, taskId);
   detailDeleteBtn.onclick = () => {
     taskDetailsModal.close();
     deleteTask(dateKey, taskId);
   };
   taskDetailsModal.showModal();
+}
+
+function markTaskCancelled(dateKey, taskId) {
+  state.tasksByDate[dateKey] = (state.tasksByDate[dateKey] || []).map((task) => (
+    task.id === taskId ? { ...task, status: "Cancelled", completed: false } : task
+  ));
+  saveTasks();
+  openTaskDetails(dateKey, taskId);
+  renderCalendar(searchInput.value.toLowerCase().trim());
 }
 
 function renderSubtaskList(task) {
@@ -1027,6 +1066,7 @@ addGroupCategoryBtn.addEventListener("click", () => {
   renderCalendar(searchInput.value.toLowerCase().trim());
 });
 document.getElementById("closeGroupManage").addEventListener("click", () => groupManageModal.close());
+document.getElementById("closePipelineMore").addEventListener("click", () => pipelineMoreModal.close());
 
 taskCategory.addEventListener("change", () => renderCategoryOptions(taskCategory.value));
 

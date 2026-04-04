@@ -101,6 +101,7 @@
           <h2>Profile & Workspace Settings</h2>
           <p class="muted mt-xs">Build your planning profile, category structure, and workflow options. All changes are saved locally on your device.</p>
           <div class="settings-stack mt-sm">
+            <div class="settings-two-col">
             <section class="setting-card">
               <h3>Planner Profile</h3>
               <form id="profileForm" class="u-col-gap-sm mt-xs">
@@ -120,7 +121,7 @@
             </section>
 
             <section class="setting-card">
-              <h3>Category Groups</h3>
+              <h3>Groups & Categories</h3>
               <form id="addGroupForm" class="inline-form add-group-form mt-xs">
                 <input id="newGroupName" type="text" placeholder="Add parent category (e.g. Marketing)" />
                 <button type="submit">Add Group</button>
@@ -132,6 +133,7 @@
               </form>
               <div id="groupList" class="group-list mt-sm"></div>
             </section>
+            </div>
 
             <section class="setting-card">
               <h3>Quick Actions</h3>
@@ -180,7 +182,7 @@
           <select id="taskStatus">
             <option value="Not Started">Not Started</option>
             <option value="In Progress">In Progress</option>
-            <option value="Blocked">Blocked</option>
+            <option value="Cancelled">Cancelled</option>
             <option value="Done">Done</option>
           </select>
         </label>
@@ -223,6 +225,7 @@
         <div class="details-grid" id="taskDetailsBody"></div>
         <div class="modal-actions details-actions">
           <button id="detailEditBtn" type="button">✏️ Edit</button>
+          <button id="detailCancelBtn" type="button">🚫 Cancel Task</button>
           <button id="detailDeleteBtn" type="button">🗑 Delete</button>
         </div>
 
@@ -259,6 +262,16 @@
           <button id="addGroupCategoryBtn" type="button">Add</button>
         </div>
         <ul id="groupCategoryList" class="modal-list"></ul>
+      </article>
+    </dialog>
+
+    <dialog id="pipelineMoreModal">
+      <article>
+        <div class="section-head">
+          <h3 id="pipelineMoreTitle">Pipeline Tasks</h3>
+          <button id="closePipelineMore" type="button">Close</button>
+        </div>
+        <ul id="pipelineMoreList" class="modal-list"></ul>
       </article>
     </dialog>
 
