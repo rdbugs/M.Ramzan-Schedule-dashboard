@@ -52,6 +52,7 @@ const state = {
   activeView: "dashboard",
   selectedPipelineGroup: "all",
   profileConfig: loadProfileConfig(),
+  managingGroupName: null,
 };
 
 const monthLabel = document.getElementById("monthLabel");
@@ -119,6 +120,14 @@ const newGroupName = document.getElementById("newGroupName");
 const parentGroupSelect = document.getElementById("parentGroupSelect");
 const newCategoryName = document.getElementById("newCategoryName");
 const groupList = document.getElementById("groupList");
+const groupManageModal = document.getElementById("groupManageModal");
+const groupManageTitle = document.getElementById("groupManageTitle");
+const groupRenameInput = document.getElementById("groupRenameInput");
+const renameGroupBtn = document.getElementById("renameGroupBtn");
+const deleteGroupBtn = document.getElementById("deleteGroupBtn");
+const groupCategoryInput = document.getElementById("groupCategoryInput");
+const addGroupCategoryBtn = document.getElementById("addGroupCategoryBtn");
+const groupCategoryList = document.getElementById("groupCategoryList");
 
 let modalDraftSubtasks = [];
 
@@ -265,7 +274,8 @@ function renderCalendar(searchQuery = "") {
       listEl.style.background = "";
       const raw = event.dataTransfer.getData("text/plain");
       if (!raw) return;
-      const { fromDateKey, taskId } = JSON.parse(raw);
+      const { fromDateKey, taskId, copy } = JSON.parse(raw);
+      if (copy) return copyTaskToDate(fromDateKey, dateKey, taskId);
       moveTask(fromDateKey, dateKey, taskId);
     });
 
@@ -292,7 +302,7 @@ function createTaskElement(task, dateKey) {
 
   li.addEventListener("dragstart", (event) => {
     li.classList.add("dragging");
-    event.dataTransfer.setData("text/plain", JSON.stringify({ fromDateKey: dateKey, taskId: task.id }));
+    event.dataTransfer.setData("text/plain", JSON.stringify({ fromDateKey: dateKey, taskId: task.id, copy: event.ctrlKey }));
   });
   li.addEventListener("dragend", () => li.classList.remove("dragging"));
 
@@ -429,6 +439,14 @@ function moveTask(fromDateKey, toDateKey, taskId) {
   if (!movingTask) return;
   state.tasksByDate[fromDateKey] = fromTasks.filter((task) => task.id !== taskId);
   state.tasksByDate[toDateKey] = [...(state.tasksByDate[toDateKey] || []), movingTask];
+  saveTasks();
+  renderCalendar(searchInput.value.toLowerCase().trim());
+}
+function copyTaskToDate(fromDateKey, toDateKey, taskId) {
+  const fromTasks = state.tasksByDate[fromDateKey] || [];
+  const sourceTask = fromTasks.find((task) => task.id === taskId);
+  if (!sourceTask) return;
+  state.tasksByDate[toDateKey] = [...(state.tasksByDate[toDateKey] || []), { ...sourceTask, id: safeUUID(), completed: false }];
   saveTasks();
   renderCalendar(searchInput.value.toLowerCase().trim());
 }
@@ -587,10 +605,90 @@ function renderSettingsProfile() {
   parentGroupSelect.innerHTML = state.profileConfig.groups.map((group) => `<option value="${group.name}">${group.name}</option>`).join("");
   groupList.innerHTML = state.profileConfig.groups.map((group) => `
     <article class="group-card">
-      <h4>${group.name}</h4>
+      <div class="group-card-head">
+        <h4>${group.name}</h4>
+        <div class="group-card-actions">
+          <button type="button" data-open-group="${group.name}">Edit</button>
+          <button type="button" data-delete-group="${group.name}">Delete</button>
+        </div>
+      </div>
       <div class="group-tags">${group.categories.map((category) => `<span class="pill">${category}</span>`).join("")}</div>
     </article>
   `).join("");
+
+  groupList.querySelectorAll("[data-open-group]").forEach((btn) => {
+    btn.addEventListener("click", () => openGroupManageModal(btn.dataset.openGroup));
+  });
+  groupList.querySelectorAll("[data-delete-group]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      deleteGroup(btn.dataset.deleteGroup);
+    });
+  });
+}
+
+function deleteGroup(groupName) {
+  state.profileConfig.groups = state.profileConfig.groups.filter((group) => group.name !== groupName);
+  if (!state.profileConfig.groups.length) {
+    state.profileConfig.groups.push({ name: "General", categories: ["Other Tasks"] });
+  }
+  saveProfileConfig();
+  setupSelects();
+  renderSettingsProfile();
+  renderPipelineGroupFilters();
+  renderCalendar(searchInput.value.toLowerCase().trim());
+}
+
+function openGroupManageModal(groupName) {
+  state.managingGroupName = groupName;
+  const group = state.profileConfig.groups.find((g) => g.name === groupName);
+  if (!group) return;
+  groupManageTitle.textContent = `Manage: ${group.name}`;
+  groupRenameInput.value = group.name;
+  renderGroupCategoryList();
+  groupManageModal.showModal();
+}
+
+function renderGroupCategoryList() {
+  const group = state.profileConfig.groups.find((g) => g.name === state.managingGroupName);
+  if (!group) {
+    groupCategoryList.innerHTML = "<li>No categories</li>";
+    return;
+  }
+  groupCategoryList.innerHTML = group.categories.map((category) => `
+    <li>
+      <span>${category}</span>
+      <div class="group-card-actions">
+        <button type="button" data-edit-cat="${category}">Edit</button>
+        <button type="button" data-del-cat="${category}">Delete</button>
+      </div>
+    </li>
+  `).join("") || "<li>No categories</li>";
+
+  groupCategoryList.querySelectorAll("[data-edit-cat]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const next = prompt("Rename category", btn.dataset.editCat);
+      if (!next) return;
+      const catIdx = group.categories.findIndex((cat) => cat === btn.dataset.editCat);
+      if (catIdx >= 0) group.categories[catIdx] = next.trim();
+      saveProfileConfig();
+      setupSelects();
+      renderSettingsProfile();
+      renderPipelineGroupFilters();
+      renderGroupCategoryList();
+      renderCalendar(searchInput.value.toLowerCase().trim());
+    });
+  });
+  groupCategoryList.querySelectorAll("[data-del-cat]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      group.categories = group.categories.filter((cat) => cat !== btn.dataset.delCat);
+      saveProfileConfig();
+      setupSelects();
+      renderSettingsProfile();
+      renderPipelineGroupFilters();
+      renderGroupCategoryList();
+      renderCalendar(searchInput.value.toLowerCase().trim());
+    });
+  });
 }
 
 function openDayTasksModal(dateKey) {
@@ -894,6 +992,41 @@ addCategoryForm.addEventListener("submit", (event) => {
   renderPipelineGroupFilters();
   renderCalendar(searchInput.value.toLowerCase().trim());
 });
+renameGroupBtn.addEventListener("click", () => {
+  const next = groupRenameInput.value.trim();
+  if (!next || !state.managingGroupName) return;
+  const group = state.profileConfig.groups.find((g) => g.name === state.managingGroupName);
+  if (!group) return;
+  group.name = next;
+  state.managingGroupName = next;
+  saveProfileConfig();
+  setupSelects();
+  renderSettingsProfile();
+  renderPipelineGroupFilters();
+  openGroupManageModal(next);
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
+deleteGroupBtn.addEventListener("click", () => {
+  if (!state.managingGroupName) return;
+  const groupName = state.managingGroupName;
+  groupManageModal.close();
+  deleteGroup(groupName);
+});
+addGroupCategoryBtn.addEventListener("click", () => {
+  const text = groupCategoryInput.value.trim();
+  if (!text || !state.managingGroupName) return;
+  const group = state.profileConfig.groups.find((g) => g.name === state.managingGroupName);
+  if (!group) return;
+  if (!group.categories.some((cat) => cat.toLowerCase() === text.toLowerCase())) group.categories.push(text);
+  groupCategoryInput.value = "";
+  saveProfileConfig();
+  setupSelects();
+  renderSettingsProfile();
+  renderPipelineGroupFilters();
+  renderGroupCategoryList();
+  renderCalendar(searchInput.value.toLowerCase().trim());
+});
+document.getElementById("closeGroupManage").addEventListener("click", () => groupManageModal.close());
 
 taskCategory.addEventListener("change", () => renderCategoryOptions(taskCategory.value));
 

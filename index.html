@@ -121,11 +121,11 @@
 
             <section class="setting-card">
               <h3>Category Groups</h3>
-              <form id="addGroupForm" class="inline-form mt-xs">
+              <form id="addGroupForm" class="inline-form add-group-form mt-xs">
                 <input id="newGroupName" type="text" placeholder="Add parent category (e.g. Marketing)" />
                 <button type="submit">Add Group</button>
               </form>
-              <form id="addCategoryForm" class="inline-form mt-xs">
+              <form id="addCategoryForm" class="inline-form add-category-form mt-xs">
                 <select id="parentGroupSelect"></select>
                 <input id="newCategoryName" type="text" placeholder="Add category inside selected group" />
                 <button type="submit">Add Category</button>
@@ -237,6 +237,28 @@
           <p id="pomodoroDisplay">25:00</p>
           <button id="startPomodoro" type="button" class="primary">Start</button>
         </div>
+      </article>
+    </dialog>
+
+    <dialog id="groupManageModal">
+      <article>
+        <div class="section-head">
+          <h3 id="groupManageTitle">Manage Group</h3>
+          <button id="closeGroupManage" type="button">Close</button>
+        </div>
+        <div class="inline-form mt-sm">
+          <input id="groupRenameInput" type="text" placeholder="Rename group" />
+          <button id="renameGroupBtn" type="button">Rename</button>
+        </div>
+        <div class="modal-actions mt-sm">
+          <button id="deleteGroupBtn" type="button">Delete Group</button>
+        </div>
+        <h4 class="mt-sm">Categories</h4>
+        <div class="inline-form mt-xs add-category-form">
+          <input id="groupCategoryInput" type="text" placeholder="Add category to this group" />
+          <button id="addGroupCategoryBtn" type="button">Add</button>
+        </div>
+        <ul id="groupCategoryList" class="modal-list"></ul>
       </article>
     </dialog>
 

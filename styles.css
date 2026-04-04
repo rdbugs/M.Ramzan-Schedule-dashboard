@@ -181,8 +181,13 @@ body {
 .settings-stack { display: grid; gap: 0.75rem; }
 .setting-card { border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem; background: rgba(255, 255, 255, 0.03); }
 .inline-form { display: grid; grid-template-columns: 1fr auto; gap: 0.45rem; }
+.add-group-form { grid-template-columns: 1fr auto; }
+.add-category-form { grid-template-columns: minmax(150px, 220px) 1fr auto; }
 .group-list { display: grid; gap: 0.5rem; }
 .group-card { border: 1px solid var(--line); border-radius: 10px; padding: 0.45rem; display: grid; gap: 0.4rem; }
+.group-card-head { display: flex; justify-content: space-between; align-items: center; gap: 0.45rem; }
+.group-card-actions { display: inline-flex; gap: 0.3rem; }
+.group-card-actions button { padding: 0.2rem 0.45rem; font-size: 0.7rem; }
 .group-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 
 h1, h2, h3, h4, p { margin: 0; }
@@ -256,5 +261,5 @@ dialog { border: none; border-radius: 14px; max-width: 640px; width: 94%; backgr
   .section-head, .calendar-header { min-height: auto; }
   .pipeline-head-actions { flex-wrap: wrap; }
   .kanban { grid-template-columns: 1fr; }
-  .inline-form { grid-template-columns: 1fr; }
+  .inline-form, .add-group-form, .add-category-form { grid-template-columns: 1fr; }
 }
