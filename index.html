@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Content Planner Glass Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-glow"></div>
+    <div class="app-frame">
+      <aside class="sidebar glass-card u-pad-md">
+        <h2 class="brand">⚡ Planner</h2>
+        <nav class="u-col-gap-sm">
+          <button class="nav-item active" data-view="dashboard" title="Dashboard">🏠 <span>Dashboard</span></button>
+          <button class="nav-item" data-view="calendar" title="Calendar">🗓️ <span>Calendar</span></button>
+          <button class="nav-item" data-view="pipeline" title="Pipeline">🧩 <span>Pipeline</span></button>
+          <button class="nav-item" data-view="settings" title="Settings">⚙️ <span>Settings</span></button>
+        </nav>
+
+        <div class="sidebar-panels mt-sm view-section" data-section="dashboard calendar pipeline settings">
+          <section class="glass-card u-pad-md panel-mini">
+            <h2>Task Summary</h2>
+            <div class="summary-grid mt-sm">
+              <article><h3>Due Today</h3><p id="dueTodayCount">0</p></article>
+              <article><h3>High Priority</h3><p id="highPriorityCount">0</p></article>
+              <article><h3>All Pending</h3><p id="pendingCount">0</p></article>
+              <article><h3>Completed</h3><p id="completedCount">0</p></article>
+            </div>
+          </section>
+
+          <section class="glass-card u-pad-md panel-mini">
+            <h3>Quick Add Task</h3>
+            <form id="quickAddForm" class="u-col-gap-sm mt-sm">
+              <label>Category<select id="quickTaskCategory"></select></label>
+              <label>Task<input type="text" id="quickTaskText" required /></label>
+              <label>Date<input type="date" id="quickTaskDate" required /></label>
+              <label>Priority<select id="quickTaskPriority"></select></label>
+              <button type="submit" class="primary">Add Task</button>
+            </form>
+          </section>
+
+          <section class="glass-card u-pad-md panel-mini">
+            <h3>Date/Week View</h3>
+            <form id="viewFilterForm" class="u-col-gap-sm mt-sm">
+              <label>View mode
+                <select id="viewMode">
+                  <option value="date">Date-wise</option>
+                  <option value="week">Week-wise</option>
+                </select>
+              </label>
+              <label id="dateFilterWrap">Date<input type="date" id="filterDate" /></label>
+              <label id="weekFilterWrap" class="hidden">Week<input type="week" id="filterWeek" /></label>
+            </form>
+            <ul id="filteredTasks" class="filtered-tasks"></ul>
+          </section>
+        </div>
+      </aside>
+
+      <div class="main-col u-col-gap-md">
+        <header id="topBar" class="top-bar glass-card u-pad-sm">
+          <div class="search-wrap" id="topSearchWrap">
+            <input id="searchInput" type="search" placeholder="Search task / category / subtask..." />
+          </div>
+          <div class="top-actions">
+            <div class="profile-chip" id="profileChip">Guest • Social Media Manager</div>
+            <button id="notificationBtn" title="Notifications">🔔</button>
+            <button id="themeToggle" title="Toggle theme">🌓</button>
+            <div class="avatar" title="User">MR</div>
+          </div>
+        </header>
+
+        <section id="todayFocusSection" class="today-focus glass-card view-section" data-section="dashboard">
+          <div class="section-head">
+            <h2>Today Focus Panel</h2>
+            <div class="focus-head-actions">
+              <label class="switch-field" for="todayFocusToggle" title="Toggle between today and this month">
+                <span>Today</span>
+                <input id="todayFocusToggle" type="checkbox" />
+                <span class="switch-slider" aria-hidden="true"></span>
+                <span>Month</span>
+              </label>
+              <span id="todayDateLabel"></span>
+            </div>
+          </div>
+          <div class="kanban" id="todayFocusBoard"></div>
+        </section>
+
+        <section id="pipelineSection" class="pipeline glass-card view-section" data-section="dashboard pipeline">
+          <div class="section-head">
+            <h2>Content Pipeline Timeline</h2>
+            <div class="pipeline-head-actions">
+              <small>Drag cards between stages</small>
+              <div id="pipelineGroupFilters" class="toggle-row"></div>
+            </div>
+          </div>
+          <div id="pipelineBoard" class="pipeline-board"></div>
+        </section>
+
+        <section id="settingsSection" class="glass-card u-pad-md hidden view-section" data-section="settings">
+          <h2>Profile & Workspace Settings</h2>
+          <p class="muted mt-xs">Build your planning profile, category structure, and workflow options. All changes are saved locally on your device.</p>
+          <div class="settings-stack mt-sm">
+            <div class="settings-two-col">
+            <section class="setting-card">
+              <h3>Planner Profile</h3>
+              <form id="profileForm" class="u-col-gap-sm mt-xs">
+                <label>Name <input id="profileName" type="text" placeholder="Your name" /></label>
+                <label>Role
+                  <select id="profileRole">
+                    <option value="Social Media Manager">Social Media Manager</option>
+                    <option value="Graphic Designer">Graphic Designer</option>
+                    <option value="Creative Head">Creative Head</option>
+                    <option value="Video Editor">Video Editor</option>
+                    <option value="Operations Manager">Operations Manager</option>
+                    <option value="Custom">Custom</option>
+                  </select>
+                </label>
+                <button type="submit" class="primary">Save Profile</button>
+              </form>
+            </section>
+
+            <section class="setting-card">
+              <h3>Groups & Categories</h3>
+              <form id="addGroupForm" class="inline-form add-group-form mt-xs">
+                <input id="newGroupName" type="text" placeholder="Add parent category (e.g. Marketing)" />
+                <button type="submit">Add Group</button>
+              </form>
+              <form id="addCategoryForm" class="inline-form add-category-form mt-xs">
+                <select id="parentGroupSelect"></select>
+                <input id="newCategoryName" type="text" placeholder="Add category inside selected group" />
+                <button type="submit">Add Category</button>
+              </form>
+              <div id="groupList" class="group-list mt-sm"></div>
+            </section>
+            </div>
+
+            <section class="setting-card">
+              <h3>Quick Actions</h3>
+              <div class="settings-grid mt-xs">
+                <button id="jumpTodaySetting" class="primary">Jump to Today</button>
+                <button id="openNotificationSetting">Open Notifications</button>
+                <button id="clearSearchSetting">Clear Search</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="workspaceSection" class="calendar glass-card u-pad-md view-section" data-section="dashboard calendar">
+          <div class="calendar-header">
+            <div>
+              <p class="eyebrow">Production Planner</p>
+              <h1 id="monthLabel">Month Year</h1>
+            </div>
+            <div class="nav-actions">
+              <button id="prevMonth">◀ Prev</button>
+              <button id="todayBtn" class="primary">Today</button>
+              <button id="nextMonth">Next ▶</button>
+            </div>
+          </div>
+          <div class="weekday-row" id="weekdayRow"></div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+      </div>
+    </div>
+
+    <aside id="notificationCenter" class="notification-center glass-card hidden">
+      <div class="section-head"><h3>Notifications</h3><button id="closeNotifications">✕</button></div>
+      <ul id="notificationList"></ul>
+    </aside>
+
+    <div id="taskTooltip" class="task-tooltip hidden"></div>
+
+    <dialog id="taskModal">
+      <form id="taskForm" method="dialog" class="u-col-gap-sm">
+        <h3 id="taskModalTitle">Add Task</h3>
+        <label>Category<select id="taskCategory"></select></label>
+        <div id="categoryOptions" class="category-options hidden"></div>
+        <label>Task<input type="text" id="taskText" required /></label>
+        <label>Description<textarea id="taskDescription" rows="3"></textarea></label>
+        <label>Status
+          <select id="taskStatus">
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Done">Done</option>
+          </select>
+        </label>
+        <label>Pipeline Stage
+          <select id="taskStage">
+            <option>Idea</option>
+            <option>Shoot</option>
+            <option>Edit</option>
+            <option>Review</option>
+            <option>Post</option>
+            <option>Completed</option>
+          </select>
+        </label>
+        <label>Reminder<input type="datetime-local" id="taskReminder" /></label>
+        <label>Pomodoro (minutes)<input type="number" min="1" max="120" id="taskPomodoro" value="25" /></label>
+        <label>Priority<select id="taskPriority"></select></label>
+        <label>Subtasks</label>
+        <div class="subtask-input-row modal-subtask-row">
+          <button id="addModalSubtaskBtn" type="button" title="Add subtask">＋</button>
+          <input id="modalSubtaskInput" type="text" placeholder="Add subtask..." />
+        </div>
+        <ul id="modalSubtaskList" class="subtask-list"></ul>
+        <div class="modal-actions">
+          <button type="button" id="cancelTaskBtn">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dayTasksModal">
+      <article>
+        <div class="section-head"><h3 id="dayTasksTitle">Tasks for date</h3><button id="closeDayTasks" type="button">Close</button></div>
+        <ul id="dayTasksList" class="modal-list"></ul>
+      </article>
+    </dialog>
+
+    <dialog id="taskDetailsModal">
+      <article>
+        <div class="section-head"><h3 id="taskDetailsTitle">Task Details</h3><button id="closeTaskDetails" type="button">Close</button></div>
+        <div class="details-grid" id="taskDetailsBody"></div>
+        <div class="modal-actions details-actions">
+          <button id="detailEditBtn" type="button">✏️ Edit</button>
+          <button id="detailCancelBtn" type="button">🚫 Cancel Task</button>
+          <button id="detailDeleteBtn" type="button">🗑 Delete</button>
+        </div>
+
+        <div class="subtask-input-row">
+          <button id="addSubtaskBtn" type="button" title="Add subtask">＋</button>
+          <input id="newSubtaskInput" type="text" placeholder="Add subtask..." />
+        </div>
+        <ul id="subtaskList" class="subtask-list"></ul>
+
+        <div class="pomodoro-box">
+          <h4>Pomodoro</h4>
+          <p id="pomodoroDisplay">25:00</p>
+          <button id="startPomodoro" type="button" class="primary">Start</button>
+        </div>
+      </article>
+    </dialog>
+
+    <dialog id="groupManageModal">
+      <article>
+        <div class="section-head">
+          <h3 id="groupManageTitle">Manage Group</h3>
+          <button id="closeGroupManage" type="button">Close</button>
+        </div>
+        <div class="inline-form mt-sm">
+          <input id="groupRenameInput" type="text" placeholder="Rename group" />
+          <button id="renameGroupBtn" type="button">Rename</button>
+        </div>
+        <div class="modal-actions mt-sm">
+          <button id="deleteGroupBtn" type="button">Delete Group</button>
+        </div>
+        <h4 class="mt-sm">Categories</h4>
+        <div class="inline-form mt-xs add-category-form">
+          <input id="groupCategoryInput" type="text" placeholder="Add category to this group" />
+          <button id="addGroupCategoryBtn" type="button">Add</button>
+        </div>
+        <ul id="groupCategoryList" class="modal-list"></ul>
+      </article>
+    </dialog>
+
+    <dialog id="pipelineMoreModal">
+      <article>
+        <div class="section-head">
+          <h3 id="pipelineMoreTitle">Pipeline Tasks</h3>
+          <button id="closePipelineMore" type="button">Close</button>
+        </div>
+        <ul id="pipelineMoreList" class="modal-list"></ul>
+      </article>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
